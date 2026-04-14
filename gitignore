@@ -1,0 +1,47 @@
+# ========================
+# IntelliJ IDEA
+# ========================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# ========================
+# Spring Boot / Gradle
+# ========================
+build/
+.gradle/
+*.jar
+*.war
+*.class
+target/
+
+# ========================
+# Angular
+# ========================
+node_modules/
+dist/
+.angular/
+*.js.map
+
+# ========================
+# Environment & Secrets
+# ========================
+.env
+.env.*
+application-local.properties
+application-local.yml
+**/src/main/resources/application-secret*
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Logs
+# ========================
+*.log
+logs/
