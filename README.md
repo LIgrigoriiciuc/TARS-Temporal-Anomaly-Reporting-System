@@ -2,7 +2,7 @@
 
 A web application for recording, monitoring, and analyzing temporal anomalies detected across a multiverse space-time continuum. Designed for agents and supervisors operating in timeline monitoring systems.
 
-Built with **Spring Boot** (backend) · **Angular + Tailwind CSS** (frontend) · **PostgreSQL** (database) · **Docker Compose** (deployment)
+Built with **Java 17** · **Spring Boot 3** · **Hibernate** · **Angular** (TypeScript) · **Tailwind CSS** · **PostgreSQL** · **Docker Compose**
 
 > Full documentation is in [`/docs`](./docs)
 

@@ -61,14 +61,14 @@ An Agent's subscription determines which timelines (multiverses) they can report
 
 ## Technical Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Angular, Tailwind CSS |
-| Backend | Spring Boot, Hibernate ORM |
-| Database | PostgreSQL |
-| Cache / JWT Denylist | Redis |
-| AI Integration | Gemini API |
-| Payment | Stripe (test mode) |
-| Deployment | Docker Compose |
+| Layer | Technology                            |
+|---|---------------------------------------|
+| Frontend | Angular 17, TypeScript, Tailwind CSS  |
+| Backend | Java 17, Spring Boot 3, Hibernate ORM |
+| Database | PostgreSQL                            |
+| Cache / JWT Denylist | Redis                                 |
+| AI Integration | Gemini API                            |
+| Payment | Stripe (test mode)                    |
+| Deployment | Docker Compose                        |
 
 Redis is used as an in-memory store for the JWT denylist, enabling O(1) token invalidation on logout without database overhead.
