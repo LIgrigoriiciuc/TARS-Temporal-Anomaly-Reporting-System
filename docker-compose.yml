@@ -1,0 +1,36 @@
+version: '3.8' # Docker compose version
+
+services:
+  db:
+    image: postgres:15 # Use PostgreSQL version 15
+    container_name: tars-db # Custom name for the container
+    restart: always # Automatically restart if it crashes
+    environment:
+      POSTGRES_USER: tars_user # Database username
+      POSTGRES_PASSWORD: tars_password # Database password
+      POSTGRES_DB: tars_database # Name of the initial database
+    ports:
+      - "5432:5432" # Map host port 5432 to container port 5432
+
+  redis:
+    image: redis:7-alpine # Use lightweight Redis 7 Alpine image
+    container_name: tars-redis # Custom name for the container
+    restart: always # Automatically restart if it crashes
+    ports:
+      - "6379:6379" # Map host port 6379 to container port 6379
+
+#  app:
+#    build: . # Build the image from the current directory
+#    container_name: tars-app # Custom name for the app container
+#    ports:
+#      - "8080:8080" # Expose the application on host port 8080
+#    depends_on:
+#      - db # Ensure the database starts first
+#      - redis # Ensure the redis cache starts first
+#    environment:
+#      # Connection string using the service name 'db' as the hostname
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tars_database
+#      SPRING_DATASOURCE_USERNAME: tars_user
+#      SPRING_DATASOURCE_PASSWORD: tars_password
+#      SPRING_REDIS_HOST: redis # Redis service name
+#      SPRING_REDIS_PORT: 6379 # Standard Redis internal port
