@@ -1,5 +1,3 @@
-version: '3.8' # Docker compose version
-
 services:
   db:
     image: postgres:15 # Use PostgreSQL version 15
