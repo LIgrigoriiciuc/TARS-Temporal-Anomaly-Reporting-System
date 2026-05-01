@@ -4,6 +4,7 @@ import com.tars.model.ObservationReport;
 import com.tars.model.dto.ReportDTO;
 
 public class ReportMapper {
+
     public static ReportDTO toDto(ObservationReport report) {
         if (report == null) return null;
 
@@ -20,12 +21,11 @@ public class ReportMapper {
     public static ObservationReport toEntity(ReportDTO dto) {
         if (dto == null) return null;
 
-        ObservationReport report = new ObservationReport();
-        report.setId(dto.getId());
-        report.setDescription(dto.getDescription());
-        report.setYear(dto.getYear());
-        report.setKeywords(dto.getKeywords());
-        // DRAFT by default in Service
-        return report;
+        return ObservationReport.builder()
+                .id(dto.getId())
+                .description(dto.getDescription())
+                .year(dto.getYear())
+                .keywords(dto.getKeywords())
+                .build();
     }
 }

@@ -1,8 +1,11 @@
 package com.tars.model.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 @Data
+@AllArgsConstructor
 public class LoginResponseDTO {
-    private String token; // generated JWT
     private String email;
-    private String role; // "Agent" / "Supervisor"
+    private String role; // "Agent" or "Supervisor"
 }

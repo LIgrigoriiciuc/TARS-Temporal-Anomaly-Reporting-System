@@ -1,10 +1,15 @@
 package com.tars.model.dto;
 
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
 @Data
 public class ReportDTO {
-    private Long id; // null for new draft
+    private Long id;
     private String description;
     private Integer year;
     private String keywords;
-    // no Agent here, but from SecurityContext on backend
+    private String status;
+    private LocalDateTime timestamp;
 }
