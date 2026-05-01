@@ -1,0 +1,14 @@
+# Handle line endings automatically for text files
+* text=auto
+
+# Force LF for shell scripts so they work on Linux/macOS/Servers
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Force CRLF for Windows batch files
+*.bat text eol=crlf
+
+# Denote all files that are truly binary and should not be modified
+*.jar binary
+*.jpg binary
+*.png binary
