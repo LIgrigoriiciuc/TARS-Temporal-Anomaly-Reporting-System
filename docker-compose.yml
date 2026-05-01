@@ -1,34 +1,36 @@
 services:
   db:
-    image: postgres:15 # Use PostgreSQL version 15
-    container_name: tars-db # Custom name for the container
-    restart: always # Automatically restart if it crashes
+    image: postgres:15
+    container_name: tars-db
+    restart: always
     environment:
-      POSTGRES_USER: tars_user # Database username
-      POSTGRES_PASSWORD: tars_password # Database password
-      POSTGRES_DB: tars_database # Name of the initial database
+      POSTGRES_USER: tars_user
+      POSTGRES_PASSWORD: tars_password
+      POSTGRES_DB: tars_database
     ports:
-      - "5432:5432" # Map host port 5432 to container port 5432
+      - "5432:5432"
 
   redis:
-    image: redis:7-alpine # Use lightweight Redis 7 Alpine image
-    container_name: tars-redis # Custom name for the container
-    restart: always # Automatically restart if it crashes
+    image: redis:7-alpine
+    container_name: tars-redis
+    restart: always
     ports:
-      - "6379:6379" # Map host port 6379 to container port 6379
+      - "6379:6379"
 
-#  app:
-#    build: . # Build the image from the current directory
-#    container_name: tars-app # Custom name for the app container
-#    ports:
-#      - "8080:8080" # Expose the application on host port 8080
-#    depends_on:
-#      - db # Ensure the database starts first
-#      - redis # Ensure the redis cache starts first
-#    environment:
-#      # Connection string using the service name 'db' as the hostname
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tars_database
-#      SPRING_DATASOURCE_USERNAME: tars_user
-#      SPRING_DATASOURCE_PASSWORD: tars_password
-#      SPRING_REDIS_HOST: redis # Redis service name
-#      SPRING_REDIS_PORT: 6379 # Standard Redis internal port
+  app:
+    build: ./backend # CHANGED: Point to the backend folder where the Dockerfile is
+    container_name: tars-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+    environment:
+      # These variables override your application.properties settings
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tars_database
+      SPRING_DATASOURCE_USERNAME: tars_user
+      SPRING_DATASOURCE_PASSWORD: tars_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # Good practice to show which profile is active in Docker
+      SPRING_PROFILES_ACTIVE: docker
