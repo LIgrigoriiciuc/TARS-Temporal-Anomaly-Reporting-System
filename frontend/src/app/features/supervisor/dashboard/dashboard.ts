@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,11 +13,15 @@ import { UserService } from '../../../core/services/user';
 })
 export class Dashboard implements OnInit {
   users: any[] = [];
-  showCreateForm = false;
   currentTime = '';
   newUser = { name: '', email: '', password: '', role: 'AGENT' };
 
-  constructor(private authService: AuthService, private userService: UserService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private userService: UserService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     this.loadUsers();
@@ -30,24 +34,30 @@ export class Dashboard implements OnInit {
   }
 
   loadUsers() {
-    this.userService.getAllUsers().subscribe({ next: (data) => this.users = data });
+    this.userService.getAllUsers().subscribe({
+      next: (data) => {
+        this.users = data.sort((a, b) => a.id - b.id);
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   createUser() {
-    this.userService.createUser(this.newUser).subscribe({
-      next: (created) => {
-        this.users = [...this.users, created];
-        this.showCreateForm = false;
+    const payload = { ...this.newUser };
+    this.userService.createUser(payload).subscribe({
+      next: () => {
         this.newUser = { name: '', email: '', password: '', role: 'AGENT' };
+        this.loadUsers();
+      },
+      error: (err) => {
+        alert('ERROR: ' + (err.error?.message || 'Could not create user'));
       }
     });
   }
 
   deactivateUser(id: number) {
     this.userService.deactivateUser(id).subscribe({
-      next: () => {
-        this.users = this.users.map(u => u.id === id ? {...u, status: 'INACTIVE'} : u);
-      }
+      next: () => this.loadUsers()
     });
   }
 

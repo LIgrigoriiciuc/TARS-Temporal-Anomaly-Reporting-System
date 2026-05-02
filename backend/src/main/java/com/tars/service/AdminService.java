@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -22,17 +23,6 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-
-    // UC-03: Create user
-    public User createUser(UserRegistrationDTO dto) {
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
-        }
-        User user = UserMapper.toEntity(dto);
-        user.setPassword(passwordEncoder.encode(dto.getPassword())); // NFR-04
-        user.setStatus(UserStatus.ACTIVE);
-        return userRepository.save(user);
-    }
 
     // UC-04: Deactivate user
     public void deactivateUser(Long targetId, Long currentUserId) {
@@ -57,6 +47,7 @@ public class AdminService {
 
     private final JavaMailSender mailSender;
 
+    @Transactional
     public User createUser(UserRegistrationDTO dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");

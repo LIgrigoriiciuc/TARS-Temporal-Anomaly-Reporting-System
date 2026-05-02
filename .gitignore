@@ -45,3 +45,5 @@ Thumbs.db
 # ========================
 *.log
 logs/
+
+backend/src/main/resources/application.properties

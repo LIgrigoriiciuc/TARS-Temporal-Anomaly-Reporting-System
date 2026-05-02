@@ -1,145 +1,184 @@
-<div class="scanlines"></div>
-<div class="grain-overlay"></div>
+<div class="crt-overlay"></div>
+<div class="pixel-grid"></div>
 
-<header class="flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 bg-zinc-950 border-b border-[#F5F0E8]">
+<!-- Metadata Corners -->
+<div class="fixed top-1 left-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
+  AUTH: LEVEL 4 // STABLE_KERNEL_V4.2
+</div>
+<div class="fixed top-1 right-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
+  LOC: 0.0031°N 32.1112°W // CPU: 12%
+</div>
+
+<!-- Top Navigation -->
+<header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
   <div class="flex items-center gap-4">
-    <span class="material-symbols-outlined text-lg">terminal</span>
-    <h1 class="text-lg font-black tracking-[0.2em] text-[#F5F0E8] font-['Space_Grotesk'] uppercase">TARS // FIELD_MODULE</h1>
+    <div class="beveled-outset p-1 bg-sky-600 text-white">
+      <span class="material-symbols-outlined text-lg">terminal</span>
+    </div>
+    <span class="text-base font-black tracking-tight uppercase">TARS <span class="font-normal opacity-50 px-1">|</span> FIELD_MODULE</span>
   </div>
   <div class="flex items-center gap-6">
-    <button (click)="logout()" class="text-xs font-bold border border-[#F5F0E8] px-3 py-1 hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75">SEVER_CONNECTION</button>
+    <span class="text-[9px] font-bold font-mono opacity-70">Active_User: {{ email }}</span>
+    <button (click)="logout()" class="button-90s">
+      <span class="material-symbols-outlined text-xs">power_settings_new</span>
+      <span>SEVER_CONNECTION</span>
+    </button>
   </div>
 </header>
 
 <main class="max-w-[1400px] mx-auto p-4 mb-12">
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-    <!-- LEFT COLUMN -->
+    <!-- LEFT COLUMN: TELEMETRY -->
     <div class="lg:col-span-3 flex flex-col gap-4">
-      <section class="border border-[#F5F0E8] p-4 flex flex-col gap-4">
-        <div class="flex justify-between items-start">
-          <h2 class="text-xs font-bold uppercase tracking-widest">System Telemetry</h2>
-          <div class="radar-pulse"></div>
+      <div class="beveled-outset p-4 flex flex-col gap-4">
+        <div class="bg-gray-400/20 px-2 py-0.5 border-b border-gray-400 flex justify-between items-center">
+          <span class="text-[10px] font-black text-primary/70 uppercase">System Telemetry</span>
+          <div class="w-2 h-2 bg-green-500 border border-green-800 animate-pulse"></div>
         </div>
-        <div class="text-[10px] space-y-2 opacity-80">
-          <div class="flex justify-between border-b border-zinc-800 pb-1">
-            <span>LATENCY</span><span>0.0004 MS</span>
+        <div class="text-[10px] space-y-2 font-mono">
+          <div class="flex justify-between beveled-inset px-2 py-1">
+            <span class="font-bold text-primary/60">LATENCY</span>
+            <span class="font-bold text-primary">0.0004 MS</span>
           </div>
-          <div class="flex justify-between border-b border-zinc-800 pb-1">
-            <span>CORE_TEMP</span><span>34.2 K</span>
+          <div class="flex justify-between beveled-inset px-2 py-1">
+            <span class="font-bold text-primary/60">CORE_TEMP</span>
+            <span class="font-bold text-primary">34.2 K</span>
           </div>
-          <div class="flex justify-between border-b border-zinc-800 pb-1">
-            <span>RE-ENTRY_LOCK</span><span class="text-amber-500">NOMINAL</span>
+          <div class="flex justify-between beveled-inset px-2 py-1">
+            <span class="font-bold text-primary/60">RE-ENTRY_LOCK</span>
+            <span class="font-bold text-yellow-700">NOMINAL</span>
           </div>
         </div>
-        <div class="w-full aspect-square bg-zinc-900/50 border border-zinc-800 relative flex items-center justify-center overflow-hidden">
-          <div class="absolute inset-0 border border-zinc-800 m-4 rounded-full"></div>
-          <div class="absolute inset-0 border border-zinc-800 m-12 rounded-full opacity-50"></div>
-          <div class="absolute inset-0 border border-zinc-800 m-20 rounded-full opacity-30"></div>
-          <div class="w-[1px] h-full bg-[#F5F0E8]/20 absolute left-1/2"></div>
-          <div class="h-[1px] w-full bg-[#F5F0E8]/20 absolute top-1/2"></div>
-          <div class="absolute top-1/4 left-1/3 w-1 h-1 bg-[#F5F0E8]"></div>
-          <div class="absolute bottom-1/2 right-1/4 w-1 h-1 bg-[#F5F0E8] animate-pulse"></div>
+        <!-- Radar Display -->
+        <div class="beveled-inset w-full aspect-square bg-[#e5e7eb] relative flex items-center justify-center overflow-hidden">
+          <div class="absolute inset-0 border border-gray-400 m-4 rounded-full opacity-50"></div>
+          <div class="absolute inset-0 border border-gray-400 m-10 rounded-full opacity-40"></div>
+          <div class="absolute inset-0 border border-gray-400 m-16 rounded-full opacity-30"></div>
+          <div class="w-[1px] h-full bg-primary/20 absolute left-1/2"></div>
+          <div class="h-[1px] w-full bg-primary/20 absolute top-1/2"></div>
+          <div class="absolute top-1/4 left-1/3 w-1.5 h-1.5 bg-sky-600 border border-sky-900"></div>
+          <div class="absolute bottom-1/2 right-1/4 w-1.5 h-1.5 bg-primary border border-blue-900 animate-pulse"></div>
         </div>
-      </section>
+      </div>
     </div>
 
     <!-- MIDDLE COLUMN: DRAFTS -->
     <div class="lg:col-span-5 flex flex-col gap-4">
-      <div class="border border-[#F5F0E8] h-full flex flex-col">
-        <div class="bg-zinc-800/50 px-4 py-2 border-b border-[#F5F0E8] flex justify-between items-center">
-          <h2 class="text-xs font-bold uppercase tracking-widest">Observation Queue // Drafts</h2>
-          <span class="text-[10px] opacity-60">COUNT: {{ drafts.length }}</span>
+      <div class="beveled-outset h-full flex flex-col overflow-hidden">
+        <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+          <span class="text-[10px] font-black text-primary uppercase">Observation Queue // Drafts</span>
+          <span class="beveled-inset px-2 py-0.5 text-[9px] font-bold font-mono text-primary/60">COUNT: {{ drafts.length }}</span>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-white">
           @for (draft of drafts; track draft.id) {
-            <div (click)="selectDraft(draft)" class="border border-zinc-700 hover:border-[#F5F0E8] p-3 transition-colors cursor-crosshair">
+            <div (click)="selectDraft(draft)" class="beveled-outset p-3 cursor-pointer hover:bg-gray-200 transition-colors">
               <div class="flex justify-between items-start mb-2">
-                <span class="text-[10px] font-bold bg-[#F5F0E8] text-zinc-950 px-1">DRAFT_ID: {{ draft.id }}</span>
-                <span class="text-[10px] font-mono opacity-60">
-                  DB_LINEAR_T // {{ draft.timestamp | date:'yyyy.MM.dd HH:mm:ss' }}
+                <span class="beveled-inset bg-sky-100 text-sky-800 text-[9px] font-bold px-2 py-0.5">DRAFT_ID: {{ draft.id }}</span>
+                <span class="text-[9px] font-mono text-primary/50">
+                  {{ draft.timestamp | date:'yyyy.MM.dd HH:mm:ss' }}
                 </span>
               </div>
-              <div class="grid grid-cols-2 gap-4 mb-3">
+              <div class="grid grid-cols-2 gap-3 mb-2">
                 <div>
-                  <p class="text-[9px] uppercase opacity-50 mb-1">Timeline Ref</p>
-                  <p class="text-xs font-mono">{{ draft.timelineName || 'UNASSIGNED' }}</p>
+                  <p class="text-[9px] uppercase font-bold text-primary/40 mb-0.5">Timeline Ref</p>
+                  <p class="text-[11px] font-mono text-primary font-bold">{{ draft.timelineName || 'UNASSIGNED' }}</p>
                 </div>
                 <div>
-                  <p class="text-[9px] uppercase opacity-50 mb-1">Temporal Coord</p>
-                  <p class="text-xs font-mono">{{ draft.year || 'N/A' }}</p>
+                  <p class="text-[9px] uppercase font-bold text-primary/40 mb-0.5">Temporal Coord</p>
+                  <p class="text-[11px] font-mono text-primary font-bold">{{ draft.year || 'N/A' }}</p>
                 </div>
               </div>
-              <p class="text-[11px] leading-tight border-t border-zinc-800 pt-2 opacity-80">{{ draft.description }}</p>
-              <button (click)="$event.stopPropagation(); deleteDraft(draft.id)" class="mt-2 text-red-400 hover:text-red-300 text-[10px] uppercase tracking-widest">DELETE</button>
+              <p class="text-[11px] leading-tight border-t border-gray-300 pt-2 text-primary/70">{{ draft.description }}</p>
+              <button (click)="$event.stopPropagation(); deleteDraft(draft.id)"
+                      class="mt-2 button-90s text-[9px] text-red-800 bg-red-100 border-red-200">DELETE</button>
             </div>
           }
           @if (drafts.length === 0) {
-            <div class="border border-zinc-700 border-dashed p-3 opacity-50">
-              <div class="h-12 flex items-center justify-center">
-                <span class="text-[10px] uppercase tracking-tighter italic">No drafts found...</span>
-              </div>
+            <div class="beveled-inset p-4 opacity-50 flex items-center justify-center">
+              <span class="text-[10px] uppercase font-bold italic">No drafts found...</span>
             </div>
           }
         </div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN: FORM -->
+    <!-- RIGHT COLUMN: FORM + MAP -->
     <div class="lg:col-span-4 flex flex-col gap-4">
-      <section class="border border-[#F5F0E8] flex flex-col">
-        <div class="bg-zinc-800/50 px-4 py-2 border-b border-[#F5F0E8] flex justify-between items-center">
-          <h2 class="text-xs font-bold uppercase tracking-widest">Input Protocol // {{ selectedDraftId ? 'EDIT_ENTRY' : 'New Entry' }}</h2>
+      <!-- Input Form -->
+      <div class="beveled-outset flex flex-col overflow-hidden">
+        <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+          <span class="text-[10px] font-black text-primary uppercase">Input Protocol // {{ selectedDraftId ? 'EDIT_ENTRY' : 'New Entry' }}</span>
           @if (selectedDraftId) {
-            <button (click)="clearSelection()" class="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-white">NEW_ENTRY</button>
+            <button (click)="clearSelection()" class="button-90s text-[9px]">NEW_ENTRY</button>
           }
         </div>
-        <div class="p-4 flex flex-col gap-6">
-          <div class="flex flex-col gap-2">
-            <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Log_Description</label>
-            <textarea [(ngModel)]="draft.description" class="bg-zinc-950 border border-[#F5F0E8] p-3 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none min-h-[120px] resize-none" placeholder="Enter detailed observation data here..."></textarea>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-2">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Temporal_Coord</label>
-              <input [(ngModel)]="draft.year" class="bg-zinc-950 border-b border-[#F5F0E8] border-t-0 border-l-0 border-r-0 p-1 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none" type="number" placeholder="2024"/>
-            </div>
-            <div class="flex flex-col gap-2">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Timeline_Vector</label>
-              <select [(ngModel)]="draft.timelineId" class="bg-zinc-950 border-b border-[#F5F0E8] border-t-0 border-l-0 border-r-0 p-1 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none">
-                <option [value]="null">SELECT_VECTOR</option>
-                @for (t of timelines; track t.id) {
-                  <option [value]="t.id">{{ t.name }}</option>
-                }
-              </select>
+        <div class="p-4 flex flex-col gap-4 bg-[#d1d5db]">
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest">Log_Description</label>
+            <div class="beveled-inset">
+              <textarea [(ngModel)]="draft.description"
+                        class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none min-h-[100px] resize-none"
+                        placeholder="Enter detailed observation data here..."></textarea>
             </div>
           </div>
-          <div class="flex flex-col gap-3 pt-4">
-            <button (click)="saveDraft()" class="w-full border border-[#F5F0E8] py-2 text-xs font-bold uppercase tracking-widest hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest">Temporal_Coord</label>
+              <div class="beveled-inset">
+                <input [(ngModel)]="draft.year"
+                       class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none"
+                       type="number" placeholder="2024"/>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest">Timeline_Vector</label>
+              <div class="beveled-inset">
+                <select [(ngModel)]="draft.timelineId"
+                        class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none">
+                  <option [value]="null">SELECT_VECTOR</option>
+                  @for (t of timelines; track t.id) {
+                    <option [value]="t.id">{{ t.name }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2 pt-2">
+            <button (click)="saveDraft()" class="button-90s w-full justify-center py-2">
               {{ selectedDraftId ? 'UPDATE_DRAFT' : 'PRESERVE_DRAFT' }}
             </button>
-            <button class="w-full bg-[#F5F0E8] text-zinc-950 py-3 text-xs font-black uppercase tracking-widest hover:opacity-80 transition-opacity">
+            <button class="button-90s-primary w-full justify-center py-2.5 text-[11px] tracking-widest">
               COMMIT_TO_DATABASE
             </button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="border border-[#F5F0E8] overflow-hidden">
-        <img class="w-full h-32 object-cover grayscale brightness-50 contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE-pn3z_GsN5vkZ5DdZr3F_QPia6ZWdBItIHnOltCtHoeZWLtD78ZaCnaTyMClKrPV5nonEJA21OjlRskwyWuVSzK4W3bEcHpQ2DPnkoHZd3AjcUcXXDS8WIxzYY9XGA1-XU5fudHYAaPcvjbkA12eAfkaDY5OdldCRHx0uQLV2a_2wO_2XAwvP0u_rb-r3plCIpLm3Wl7DdizLalwXNEmP3h1SPufE2WqyYY1GLoX0YLAhbRLsiybTxA5PfW6Ed5aqtBfzHQOSxe3"/>
-        <div class="p-2 bg-zinc-900 flex justify-between items-center border-t border-[#F5F0E8]">
-          <span class="text-[9px] uppercase font-bold">Local_Map_Feed // Active</span>
-          <span class="text-[9px] font-mono">0.0031°N 32.1112°W</span>
+      <!-- Map Feed -->
+      <div class="beveled-outset overflow-hidden">
+        <div class="relative h-32 bg-black beveled-inset overflow-hidden">
+          <img class="w-full h-full object-cover grayscale brightness-50 contrast-125"
+               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE-pn3z_GsN5vkZ5DdZr3F_QPia6ZWdBItIHnOltCtHoeZWLtD78ZaCnaTyMClKrPV5nonEJA21OjlRskwyWuVSzK4W3bEcHpQ2DPnkoHZd3AjcUcXXDS8WIxzYY9XGA1-XU5fudHYAaPcvjbkA12eAfkaDY5OdldCRHx0uQLV2a_2wO_2XAwvP0u_rb-r3plCIpLm3Wl7DdizLalwXNEmP3h1SPufE2WqyYY1GLoX0YLAhbRLsiybTxA5PfW6Ed5aqtBfzHQOSxe3"/>
+          <div class="absolute top-2 right-2 w-2 h-2 bg-red-600 border border-red-900 animate-pulse"></div>
         </div>
-      </section>
+        <div class="bg-gray-300 px-3 py-1 border-t border-gray-400 flex justify-between items-center">
+          <span class="text-[9px] font-black text-primary uppercase">Local_Map_Feed // Active</span>
+          <span class="text-[9px] font-mono text-primary/60">0.0031°N 32.1112°W</span>
+        </div>
+      </div>
     </div>
+
   </div>
 </main>
 
-<footer class="fixed bottom-0 left-0 w-full flex justify-between items-center px-4 py-1 z-50 bg-zinc-950 border-t border-[#F5F0E8] font-mono text-[10px] uppercase">
-  <div class="flex gap-4">
-    <span class="opacity-70">SYSTEM STATUS: <span class="text-green-400">ONLINE</span></span>
-    <span class="opacity-70">BUILD_94.08.12</span>
+<footer class="fixed bottom-0 left-0 w-full h-10 flex justify-between items-center px-4 z-50 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary">
+  <div class="flex items-center gap-6">
+    <div class="flex items-center gap-2">
+      <span class="w-3 h-3 bg-green-500 border border-green-900 status-blink"></span>
+      <span>SYSTEM: ONLINE</span>
+    </div>
+    <span class="opacity-50">UTC SYNC: ACTIVE</span>
+    <span class="opacity-50">BUILD_94.08.12</span>
   </div>
-  <span>Active_User: {{ email }}</span>
 </footer>

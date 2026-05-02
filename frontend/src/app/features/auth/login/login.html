@@ -1,77 +1,95 @@
-<div class="grain-overlay"></div>
-<div class="scanlines"></div>
+<div class="crt-overlay"></div>
+<div class="pixel-grid"></div>
 
 <div class="fixed inset-0 z-0 overflow-hidden opacity-20">
-  <img class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk_1a7gNwSsdnwe3i377T0-gKbrDg2LNjFMAsSAKvYbBMUEFp3WFSNZlC2VfZ6BQhH2YB7rV1vd00JqpXJ5L-stqVBBllLX3vlf0_nz8wXRcF_9MH9Lhtql0NW9BJAcGpWwqGcFEUdRpDcGK00Z7srr3gxFZnRZbC9rxeKSERr7gNTKS8aKUXTJ9FfPJc3hRxhjG62uM5cV0Glh60sJCIsp0W2QXD6ypZP9LaKHwkfHiq982MUiR3A85FlNDQdN8XETP_ZRc52gJcT"/>
+  <img class="w-full h-full object-cover grayscale contrast-125"
+       src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk_1a7gNwSsdnwe3i377T0-gKbrDg2LNjFMAsSAKvYbBMUEFp3WFSNZlC2VfZ6BQhH2YB7rV1vd00JqpXJ5L-stqVBBllLX3vlf0_nz8wXRcF_9MH9Lhtql0NW9BJAcGpWwqGcFEUdRpDcGK00Z7srr3gxFZnRZbC9rxeKSERr7gNTKS8aKUXTJ9FfPJc3hRxhjG62uM5cV0Glh60sJCIsp0W2QXD6ypZP9LaKHwkfHiq982MUiR3A85FlNDQdN8XETP_ZRc52gJcT"/>
 </div>
 
-<main class="relative z-10 flex min-h-screen items-center justify-center p-gutter">
-  <section class="w-full max-w-[420px] bg-zinc-950 border border-[#F5F0E8] flex flex-col shadow-none">
-    <header class="h-8 border-b border-[#F5F0E8] px-4 flex items-center justify-between bg-zinc-900">
-      <h1 class="font-label-caps text-label-caps uppercase tracking-widest text-white flex items-center gap-2">
+<!-- Metadata Corners -->
+<div class="fixed top-1 left-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
+  AUTH: LEVEL 4 // STABLE_KERNEL_V4.2
+</div>
+<div class="fixed top-1 right-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
+  LOC: 89.2, -12.4 // CPU: 12%
+</div>
+
+<main class="relative z-10 flex min-h-screen items-center justify-center p-4">
+  <section class="w-full max-w-[420px] flex flex-col beveled-outset">
+
+    <!-- Title Bar -->
+    <header class="h-8 bg-sky-700 px-3 flex items-center justify-between border-b-2 border-sky-900">
+      <h1 class="font-bold text-[11px] uppercase tracking-widest text-white flex items-center gap-2">
         <span class="material-symbols-outlined text-[14px]">terminal</span>
         SECURE_TERMINAL_V9.4
       </h1>
-      <div class="flex gap-2">
-        <div class="w-2 h-2 bg-red-500"></div>
-        <div class="w-2 h-2 bg-white opacity-20"></div>
+      <div class="flex gap-1">
+        <div class="w-3 h-3 beveled-outset bg-gray-300"></div>
+        <div class="w-3 h-3 beveled-outset bg-gray-300"></div>
+        <div class="w-3 h-3 beveled-outset bg-gray-300"></div>
       </div>
     </header>
 
-    <div class="p-8 space-y-6">
-      <div class="space-y-1">
-        <p class="text-xs font-bold text-white opacity-50 uppercase tracking-tighter">TEMPORAL_ANOMALY_REPORTING_SYSTEM</p>
-        <p class="text-xs text-white opacity-30 font-mono">RESTRICTED ACCESS // LEVEL 4 CLEARANCE REQUIRED</p>
+    <div class="p-6 space-y-5 bg-[#d1d5db]">
+      <div class="space-y-1 border-b-2 border-b-[#4b5563] border-t-0 border-l-0 border-r-0 pb-3">
+        <p class="text-[11px] font-black text-primary uppercase tracking-tighter">TEMPORAL_ANOMALY_REPORTING_SYSTEM</p>
+        <p class="text-[10px] text-primary/60 font-bold font-mono">RESTRICTED ACCESS // LEVEL 4 CLEARANCE REQUIRED</p>
       </div>
 
       <div class="space-y-4">
         <div class="space-y-1">
-          <label class="font-label-caps text-label-caps text-white opacity-80">IDENTITY_HASH</label>
-          <input [(ngModel)]="email"
-                 class="w-full bg-transparent border border-[#F5F0E8] focus:ring-0 text-white font-mono px-3 py-2 text-sm placeholder:opacity-20 focus:outline-none"
-                 placeholder="SHA-256_UID_XXXX" type="text"/>
+          <label class="text-[10px] font-black text-primary uppercase tracking-widest block">IDENTITY_HASH</label>
+          <div class="beveled-inset">
+            <input [(ngModel)]="email"
+                   class="w-full bg-transparent px-2 py-1.5 text-[12px] font-mono text-primary focus:outline-none placeholder:text-primary/30"
+                   placeholder="SHA-256_UID_XXXX" type="text"/>
+          </div>
         </div>
         <div class="space-y-1">
-          <label class="font-label-caps text-label-caps text-white opacity-80">ACCESS_KEY</label>
-          <div class="relative">
+          <label class="text-[10px] font-black text-primary uppercase tracking-widest block">ACCESS_KEY</label>
+          <div class="beveled-inset relative">
             <input [(ngModel)]="password"
-                   class="w-full bg-transparent border border-[#F5F0E8] focus:ring-0 text-white font-mono px-3 py-2 text-sm focus:outline-none"
+                   class="w-full bg-transparent px-2 py-1.5 text-[12px] font-mono text-primary focus:outline-none"
                    type="password"/>
-            <span class="absolute right-3 top-1/2 -translate-y-1/2 cursor-blink text-white opacity-50 font-bold">_</span>
+            <span class="absolute right-2 top-1/2 -translate-y-1/2 cursor-blink text-primary/50 font-bold text-sm">_</span>
           </div>
         </div>
       </div>
 
       @if (errorMessage) {
-        <p class="text-red-400 text-xs font-mono">! ERROR_CODE: {{ errorMessage }}</p>
+        <div class="beveled-inset bg-red-100 px-2 py-1">
+          <p class="text-red-800 text-[10px] font-bold font-mono">! ERROR_CODE: {{ errorMessage }}</p>
+        </div>
       }
 
       <button (click)="onLogin()"
-              class="w-full border border-[#F5F0E8] py-3 font-label-caps text-label-caps tracking-[0.2em] text-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75 cursor-crosshair active:opacity-80">
+              class="button-90s-primary w-full justify-center py-2.5 text-[11px] tracking-[0.2em]">
         [INITIALIZE_LINK]
       </button>
 
-      <div class="flex items-center justify-between pt-4 border-t border-[#F5F0E8] border-opacity-10">
+      <div class="flex items-center justify-between pt-3 border-t-2 border-[#4b5563] border-l-0 border-r-0 border-b-0">
         <div class="flex gap-4">
-          <a class="text-[10px] text-white opacity-50 hover:opacity-100 hover:underline" href="#">RECOVER_SEED</a>
-          <a class="text-[10px] text-white opacity-50 hover:opacity-100 hover:underline" href="#">ENCRYPT_KEY</a>
+          <a class="text-[10px] text-primary/60 font-bold hover:text-primary hover:underline uppercase" href="#">RECOVER_SEED</a>
+          <a class="text-[10px] text-primary/60 font-bold hover:text-primary hover:underline uppercase" href="#">ENCRYPT_KEY</a>
         </div>
-        <span class="text-[10px] text-white opacity-30">ERR_LOG: 0</span>
+        <span class="text-[9px] text-primary/40 font-bold font-mono">ERR_LOG: 0</span>
       </div>
     </div>
+
   </section>
 </main>
 
-<footer class="fixed bottom-0 left-0 w-full flex justify-between items-center px-4 py-1 z-50 bg-zinc-950 border-t border-[#F5F0E8] font-mono text-[10px] tracking-tighter uppercase text-[#F5F0E8]">
-  <div class="flex items-center gap-3">
-    <span class="status-blink">SYSTEM STATUS: ONLINE</span>
-    <span class="opacity-30">|</span>
-    <span class="opacity-70">UTC_TIME_SYNC: ACTIVE</span>
-    <span class="opacity-30">|</span>
-    <span class="opacity-70">BUILD_94.08.12</span>
+<footer class="fixed bottom-0 left-0 w-full h-10 flex justify-between items-center px-4 z-50 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary">
+  <div class="flex items-center gap-6">
+    <div class="flex items-center gap-2">
+      <span class="w-3 h-3 bg-green-500 border border-green-900 status-blink"></span>
+      <span>SYSTEM STATUS: ONLINE</span>
+    </div>
+    <span class="opacity-50">UTC_TIME_SYNC: ACTIVE</span>
+    <span class="opacity-50">BUILD_94.08.12</span>
   </div>
-  <nav class="flex items-center gap-6">
-    <a class="opacity-70 hover:opacity-100 hover:bg-[#F5F0E8] hover:text-zinc-950 px-2 cursor-help transition-all duration-75" href="#">PROTOCOLS</a>
-    <a class="opacity-70 hover:opacity-100 hover:bg-[#F5F0E8] hover:text-zinc-950 px-2 cursor-help transition-all duration-75" href="#">MANUAL</a>
+  <nav class="flex items-center gap-0 h-full">
+    <a class="h-full px-4 flex items-center hover:bg-gray-300 border-x border-gray-400 text-[10px]" href="#">PROTOCOLS</a>
+    <a class="h-full px-4 flex items-center hover:bg-gray-300 border-r border-gray-400 text-[10px]" href="#">MANUAL</a>
   </nav>
 </footer>

@@ -1,121 +1,196 @@
-<div class="grain-overlay"></div>
-<div class="scanlines"></div>
+<div class="crt-overlay"></div>
+<div class="pixel-grid"></div>
 
-<header class="bg-zinc-950 text-[#F5F0E8] font-['Space_Grotesk'] uppercase tracking-widest text-xs font-bold border-b border-[#F5F0E8] flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50">
+<!-- Metadata Corners -->
+<div class="fixed top-1 left-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
+  AUTH: LEVEL 4 // STABLE_KERNEL_V4.2
+</div>
+<div class="fixed top-1 right-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
+  MODE: OVERRIDE_ENABLED // {{ currentTime }}
+</div>
+
+<!-- Top Navigation -->
+<header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
   <div class="flex items-center gap-4">
-    <span class="material-symbols-outlined text-lg">terminal</span>
-    <span class="text-lg font-black tracking-[0.2em]">TARS // TEMPORAL_ANOMALY_REPORTING_SYSTEM</span>
+    <div class="beveled-outset p-1 bg-sky-600 text-white">
+      <span class="material-symbols-outlined text-lg">terminal</span>
+    </div>
+    <span class="text-base font-black tracking-tight uppercase">TARS <span class="font-normal opacity-50 px-1">|</span> TEMPORAL_ANOMALY_REPORTING_SYSTEM</span>
   </div>
   <div class="flex items-center gap-6">
-    <div class="text-[10px] opacity-60 flex flex-col items-end">
-      <span>MODE: OVERRIDE_ENABLED</span>
-      <span class="font-mono">{{ currentTime }}</span>
+    <div class="text-[9px] opacity-80 flex flex-col items-end leading-none font-bold font-mono">
+      <span>LINK: OK</span>
+      <span>{{ currentTime }}</span>
     </div>
-    <button (click)="logout()" class="bg-[#F5F0E8] text-zinc-950 px-3 py-1 hover:bg-zinc-800 hover:text-[#F5F0E8] transition-colors duration-75 border border-[#F5F0E8] font-bold">
-      SEVER_CONNECTION
+    <button (click)="logout()" class="button-90s">
+      <span class="material-symbols-outlined text-xs">power_settings_new</span>
+      <span>SEVER_CONNECTION</span>
     </button>
   </div>
 </header>
 
-<div class="flex min-h-[calc(100vh-64px)]">
-  <aside class="w-16 md:w-64 border-r border-[#F5F0E8] flex flex-col pt-4">
-    <nav class="flex-1 px-4 space-y-4">
+<div class="flex min-h-[calc(100vh-48px)]">
+  <!-- Sidebar Navigation -->
+  <aside class="w-12 md:w-56 bg-[#d1d5db] border-r-2 border-white shadow-[2px_0_0_#4b5563] flex flex-col">
+    <nav class="flex-1 px-3 py-6 space-y-8">
       <div>
-        <span class="font-label-caps text-label-caps text-on-surface-variant block mb-2 px-2">CORE_SYSTEMS</span>
+        <span class="text-[10px] font-bold text-gray-600 block mb-3 px-2 border-b border-gray-400">CORE_SYSTEMS</span>
         <ul class="space-y-1">
-          <li class="bg-[#F5F0E8] text-zinc-950 px-2 py-2 flex items-center gap-3 cursor-crosshair">
-            <span class="material-symbols-outlined text-sm">supervisor_account</span>
-            <span class="hidden md:inline font-label-caps text-label-caps">PERSONNEL_REGISTRY</span>
+          <li class="beveled-inset bg-white text-primary px-3 py-2 flex items-center gap-3 cursor-pointer">
+            <span class="material-symbols-outlined text-lg">supervisor_account</span>
+            <span class="hidden md:inline font-bold text-xs uppercase">Personnel Registry</span>
+          </li>
+          <li class="hover:bg-gray-300 px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-lg text-gray-500">folder_special</span>
+            <span class="hidden md:inline font-bold text-xs uppercase text-gray-600">Anomaly Logs</span>
+          </li>
+          <li class="hover:bg-gray-300 px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-lg text-gray-500">verified_user</span>
+            <span class="hidden md:inline font-bold text-xs uppercase text-gray-600">Security Nodes</span>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <span class="text-[10px] font-bold text-gray-600 block mb-3 px-2 border-b border-gray-400">ANALYTICS</span>
+        <ul class="space-y-1">
+          <li class="hover:bg-gray-300 px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-lg text-gray-500">insights</span>
+            <span class="hidden md:inline font-bold text-xs uppercase text-gray-600">Temporal Drift</span>
           </li>
         </ul>
       </div>
     </nav>
   </aside>
 
-  <main class="flex-1 p-4 mb-12">
-    <div class="flex justify-between items-end mb-8 border-b-2 border-white pb-4">
+  <!-- Main Content -->
+  <main class="flex-1 p-6 mb-12 overflow-y-auto">
+    <!-- Breadcrumb -->
+    <div class="mb-6 flex items-center gap-1 text-[9px] text-primary/60 font-bold uppercase">
+      <span class="hover:underline cursor-pointer">ROOT</span>
+      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+      <span class="hover:underline cursor-pointer">SYS_OPS</span>
+      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+      <span class="text-primary font-black bg-white/40 px-1">SUPERVISOR_DASHBOARD</span>
+    </div>
+
+    <!-- Page Header -->
+    <div class="flex justify-between items-start mb-8 border-b-2 border-primary/20 pb-4">
       <div>
-        <h1 class="font-headline-lg text-headline-lg uppercase tracking-tighter">Personnel Registry</h1>
-        <p class="font-body-mono text-body-mono text-on-surface-variant mt-2 uppercase">Authorized clearance level: 4-SIGMA</p>
+        <h1 class="text-4xl font-black text-primary uppercase tracking-tighter mb-1">Personnel_Registry</h1>
+        <div class="flex items-center gap-3">
+          <span class="beveled-inset bg-yellow-100 text-[9px] font-bold px-2 py-0.5 text-yellow-800">LVL 4-SIGMA</span>
+          <span class="text-[10px] text-primary/60 font-bold uppercase">Status: <span class="text-green-600">LINK_OK</span></span>
+        </div>
       </div>
-      <button (click)="showCreateForm = true" class="border border-[#F5F0E8] px-6 py-2 font-label-caps text-label-caps hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm">person_add</span>
-        ENLIST_PERSONNEL
-      </button>
     </div>
 
     <!-- Create User Form -->
-    @if (showCreateForm) {
-      <div class="border border-[#F5F0E8] p-6 mb-8 bg-zinc-900">
-        <h3 class="font-label-caps text-label-caps mb-4">NEW_PERSONNEL_ENTRY</h3>
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">NAME</label>
-            <input [(ngModel)]="newUser.name" class="w-full bg-transparent border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none" type="text"/>
+    <div class="beveled-outset p-5 mb-6">
+      <div class="bg-gray-400/20 px-2 py-0.5 mb-4 border-b border-gray-400 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm text-primary/70">person_add</span>
+        <span class="text-[10px] font-black text-primary/70 uppercase">New_Personnel_Entry</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">NAME</label>
+          <div class="beveled-inset">
+            <input [(ngModel)]="newUser.name" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none" type="text"/>
           </div>
-          <div>
-            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">EMAIL_IDENTITY</label>
-            <input [(ngModel)]="newUser.email" class="w-full bg-transparent border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none" type="text"/>
+        </div>
+        <div>
+          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">EMAIL_IDENTITY</label>
+          <div class="beveled-inset">
+            <input [(ngModel)]="newUser.email" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none" type="text"/>
           </div>
-          <div>
-            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">ACCESS_KEY</label>
-            <input [(ngModel)]="newUser.password" class="w-full bg-transparent border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none" type="password"/>
+        </div>
+        <div>
+          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">ACCESS_KEY</label>
+          <div class="beveled-inset">
+            <input [(ngModel)]="newUser.password" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none" type="password"/>
           </div>
-          <div>
-            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">ROLE_CLEARANCE</label>
-            <select [(ngModel)]="newUser.role" class="w-full bg-zinc-950 border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">ROLE_CLEARANCE</label>
+          <div class="beveled-inset">
+            <select [(ngModel)]="newUser.role" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none">
               <option value="AGENT">AGENT</option>
               <option value="SUPERVISOR">SUPERVISOR</option>
             </select>
           </div>
         </div>
-        <div class="flex gap-3">
-          <button (click)="createUser()" class="border border-[#F5F0E8] px-6 py-2 text-xs uppercase tracking-widest hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors">ENLIST</button>
-          <button (click)="showCreateForm = false" class="border border-zinc-600 px-6 py-2 text-xs uppercase tracking-widest hover:bg-zinc-800 transition-colors">CANCEL</button>
+      </div>
+      <div class="flex gap-3">
+        <button (click)="createUser()" class="button-90s-primary px-6 py-1.5">
+          <span class="material-symbols-outlined text-sm">person_add</span>
+          <span>ENLIST</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Manifest Table -->
+    <div class="beveled-outset overflow-hidden">
+      <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+        <span class="text-xs font-black text-primary uppercase">Enlisted Entities Manifest</span>
+        <div class="flex gap-1">
+          <div class="w-4 h-4 beveled-inset bg-gray-200"></div>
+          <div class="w-4 h-4 beveled-outset bg-gray-200"></div>
         </div>
       </div>
-    }
-
-    <div class="border border-outline bg-surface-container">
-      <div class="bg-outline-variant px-4 py-2 flex justify-between items-center">
-        <span class="font-label-caps text-label-caps text-surface">ENLISTED_ENTITIES_MANIFEST</span>
+      <div class="overflow-x-auto bg-white">
+        <table class="w-full text-xs text-left border-collapse table-90s">
+          <thead>
+          <tr class="text-[10px] uppercase">
+            <th class="px-4 py-2">ID_String</th>
+            <th class="px-4 py-2">Email_Identity</th>
+            <th class="px-4 py-2">Role_Clearance</th>
+            <th class="px-4 py-2">Status_State</th>
+            <th class="px-4 py-2 text-right">System_Actions</th>
+          </tr>
+          </thead>
+          <tbody class="bg-gray-50">
+            @for (user of users; track user.id) {
+              <tr class="manifest-row">
+                <td class="px-4 py-2 font-bold font-mono">#{{ user.id }}</td>
+                <td class="px-4 py-2 text-primary/80">{{ user.email }}</td>
+                <td class="px-4 py-2">
+                  <span class="beveled-inset bg-white px-2 py-0.5 text-[9px] font-bold">{{ user.role }}</span>
+                </td>
+                <td class="px-4 py-2">
+                  @if (user.status === 'ACTIVE') {
+                    <span class="flex items-center gap-1 font-bold text-[10px]">
+                      <span class="w-2 h-2 bg-green-500 border border-green-800"></span> ACTIVE
+                    </span>
+                  } @else {
+                    <span class="flex items-center gap-1 font-bold text-[10px] opacity-50">
+                      <span class="w-2 h-2 bg-gray-400 border border-gray-600"></span> INACTIVE
+                    </span>
+                  }
+                </td>
+                <td class="px-4 py-2 text-right">
+                  @if (user.status === 'ACTIVE') {
+                    <button (click)="deactivateUser(user.id)" class="button-90s text-[9px]">TERMINATE_ACCESS</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
-      <table class="w-full font-body-mono text-left border-collapse">
-        <thead>
-        <tr class="bg-zinc-900 border-b border-outline-variant">
-          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">ID_STRING</th>
-          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">EMAIL_IDENTITY</th>
-          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">ROLE_CLEARANCE</th>
-          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">STATUS_STATE</th>
-          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant text-right">SYSTEM_ACTIONS</th>
-        </tr>
-        </thead>
-        <tbody class="divide-y divide-outline-variant/30">
-          @for (user of users; track user.id) {
-            <tr class="hover:bg-zinc-800/50 transition-colors">
-              <td class="p-4 text-outline font-bold">#{{ user.id }}</td>
-              <td class="p-4">{{ user.email }}</td>
-              <td class="p-4"><span class="border border-outline px-2 py-0.5 text-[10px]">{{ user.role }}</span></td>
-              <td class="p-4">
-                @if (user.status === 'ACTIVE') {
-                  <span class="text-yellow-500">● ACTIVE</span>
-                } @else {
-                  <span class="opacity-50">○ INACTIVE</span>
-                }
-              </td>
-              <td class="p-4 text-right">
-                @if (user.status === 'ACTIVE') {
-                  <button (click)="deactivateUser(user.id)" class="text-red-400 hover:text-red-300 hover:underline text-xs font-bold">TERMINATE_ACCESS</button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+      <div class="bg-gray-300 px-4 py-1 border-t border-gray-400 text-[9px] font-bold text-primary/60 uppercase flex justify-between">
+        <span>PAGE_ID: 01 // RECORDS: {{ users.length }}</span>
+        <span>READY</span>
+      </div>
     </div>
   </main>
 </div>
 
-<footer class="fixed bottom-0 left-0 w-full flex justify-between items-center px-4 py-1 z-50 bg-zinc-950 border-t border-[#F5F0E8] font-mono text-[10px] uppercase text-[#F5F0E8]">
-  <span>SYSTEM STATUS: ONLINE // UTC_TIME_SYNC: ACTIVE // BUILD_94.08.12</span>
+<footer class="fixed bottom-0 left-0 w-full h-10 flex justify-between items-center px-4 z-50 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary">
+  <div class="flex items-center gap-6">
+    <div class="flex items-center gap-2">
+      <span class="w-3 h-3 bg-green-500 border border-green-900 status-blink"></span>
+      <span>SYSTEM: ONLINE</span>
+    </div>
+    <span class="opacity-50">UTC SYNC: ACTIVE</span>
+    <span class="opacity-50">BUILD_94.08.12</span>
+  </div>
 </footer>

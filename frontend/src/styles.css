@@ -1,18 +1,127 @@
 @import "tailwindcss";
 
-.grain-overlay {
+/* CRT Scanlines Overlay */
+.crt-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 9999;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.04;
+  pointer-events: none; z-index: 100;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.05) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.02),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.02)
+  );
+  background-size: 100% 3px, 3px 100%;
+  opacity: 0.5;
 }
 
-.scanlines {
+/* Pixel Grid Texture */
+.pixel-grid {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%);
-  background-size: 100% 2px;
-  pointer-events: none; z-index: 9998;
+  pointer-events: none; z-index: -1; opacity: 0.15;
+  background-image: radial-gradient(#000 1px, transparent 0);
+  background-size: 3px 3px;
+}
+
+/* 90s Beveled Panel - Raised */
+.beveled-outset {
+  background: #d1d5db;
+  border: 2px solid;
+  border-color: #f3f4f6 #4b5563 #4b5563 #f3f4f6;
+  box-shadow: inset 1px 1px 0px #fff, inset -1px -1px 0px #9ca3af;
+}
+
+/* 90s Beveled Panel - Sunken */
+.beveled-inset {
+  background: #e5e7eb;
+  border: 2px solid;
+  border-color: #4b5563 #f3f4f6 #f3f4f6 #4b5563;
+  box-shadow: inset 1px 1px 0px #00000010;
+}
+
+/* Classic 90s Button */
+.button-90s {
+  background: #d1d5db;
+  border: 2px solid;
+  border-color: #f3f4f6 #4b5563 #4b5563 #f3f4f6;
+  box-shadow: inset 1px 1px 0px #fff, inset -1px -1px 0px #9ca3af;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #0c4a6e;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.button-90s:active {
+  border-color: #4b5563 #f3f4f6 #f3f4f6 #4b5563;
+  box-shadow: inset -1px -1px 0px #fff, inset 1px 1px 0px #9ca3af;
+  padding-top: 5px; padding-bottom: 3px;
+  padding-left: 13px; padding-right: 11px;
+}
+
+.button-90s-primary {
+  background: #0ea5e9;
+  color: white;
+  border-color: #38bdf8 #0369a1 #0369a1 #38bdf8;
+  box-shadow: inset 1px 1px 0px #7dd3fc, inset -1px -1px 0px #0284c7;
+}
+
+.button-90s-primary:active {
+  border-color: #0369a1 #38bdf8 #38bdf8 #0369a1;
+  box-shadow: inset -1px -1px 0px #7dd3fc, inset 1px 1px 0px #0284c7;
+}
+
+.button-90s-danger {
+  background: #dc2626;
+  color: white;
+  border-color: #f87171 #991b1b #991b1b #f87171;
+  box-shadow: inset 1px 1px 0px #fca5a5, inset -1px -1px 0px #b91c1c;
+}
+
+/* Table styles */
+.table-90s thead th {
+  background: #9ca3af;
+  border: 1px solid #4b5563;
+  color: #111827;
+  font-weight: 700;
+}
+.table-90s td { border: 1px solid #cbd5e1; }
+.manifest-row:hover { background-color: #cbd5e1 !important; }
+
+/* Select / Input 90s */
+.input-90s {
+  background: #e5e7eb;
+  border: 2px solid;
+  border-color: #4b5563 #f3f4f6 #f3f4f6 #4b5563;
+  padding: 4px 8px;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 12px;
+  color: #0c4a6e;
+  outline: none;
+  width: 100%;
+}
+
+.input-90s:focus {
+  background: #fff;
+  border-color: #1d4ed8 #bfdbfe #bfdbfe #1d4ed8;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 16px; height: 16px; }
+::-webkit-scrollbar-track { background: #d1d5db; box-shadow: inset 1px 1px 0 #9ca3af; }
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border: 2px solid;
+  border-color: #f3f4f6 #4b5563 #4b5563 #f3f4f6;
 }
 
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .status-blink { animation: blink 2s step-end infinite; }
+.cursor-blink { animation: blink 1s step-end infinite; }

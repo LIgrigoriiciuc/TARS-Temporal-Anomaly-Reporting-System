@@ -1,42 +1,146 @@
 <!doctype html>
-<html class="dark" lang="en">
+<html class="light" lang="en">
 <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>TARS // TERMINAL_ACCESS</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700;900&family=Public+Sans:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-  <script>
+  <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
       theme: {
         extend: {
-          colors: {
-            "surface": "#141313", "on-surface": "#e6e2e0",
-            "outline": "#949088", "outline-variant": "#49473f",
-            "surface-container": "#201f1f", "surface-container-low": "#1c1b1b",
-            "surface-container-high": "#2b2a29", "on-surface-variant": "#cbc6bc",
-            "error": "#ffb4ab", "tertiary-fixed-dim": "#ffb950",
-            "surface-variant": "#363434", "surface-bright": "#3a3938"
+          "colors": {
+            "primary": "#0c4a6e",
+            "on-surface": "#0c4a6e",
+            "on-surface-variant": "#374151",
+            "surface": "#d1d5db",
+            "surface-container": "#c8cdd5",
+            "outline": "#6b7280",
+            "outline-variant": "#4b5563",
+            "surface-dim": "#e5e7eb",
+            "error": "#dc2626"
           },
-          borderRadius: { "DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px" },
-          fontFamily: {
-            "body-mono": ["monospace"],
+          "borderRadius": {
+            "DEFAULT": "0px",
+            "lg": "0px",
+            "xl": "0px",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "16px",
+            "gutter": "8px"
+          },
+          "fontFamily": {
+            "body-base": ["Space Grotesk"],
             "label-caps": ["Space Grotesk"],
-            "headline-lg": ["Space Grotesk"],
-            "headline-md": ["Space Grotesk"]
+            "body-mono": ["monospace"]
           },
-          fontSize: {
-            "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.15em", fontWeight: "700" }],
-            "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }],
-            "headline-md": ["18px", { lineHeight: "24px", letterSpacing: "0.05em", fontWeight: "600" }],
-            "body-mono": ["13px", { lineHeight: "18px", letterSpacing: "0.02em", fontWeight: "400" }]
-          },
-          spacing: { "gutter": "16px" }
+          "fontSize": {
+            "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "700" }],
+            "body-mono": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "900" }]
+          }
         }
       }
     }
   </script>
+  <style>
+    body {
+      background-color: #b3cde0;
+      color: #0c4a6e;
+      font-family: 'Space Grotesk', sans-serif;
+      overflow-x: hidden;
+      letter-spacing: -0.01em;
+      image-rendering: pixelated;
+      min-height: max(884px, 100dvh);
+    }
+
+    .crt-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 100;
+      background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.05) 50%),
+      linear-gradient(90deg, rgba(255,0,0,0.02), rgba(0,255,0,0.01), rgba(0,0,255,0.02));
+      background-size: 100% 3px, 3px 100%;
+      opacity: 0.5;
+    }
+
+    .pixel-grid {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: -1; opacity: 0.15;
+      background-image: radial-gradient(#000 1px, transparent 0);
+      background-size: 3px 3px;
+    }
+
+    .beveled-outset {
+      background: #d1d5db;
+      border: 2px solid;
+      border-color: #f3f4f6 #4b5563 #4b5563 #f3f4f6;
+      box-shadow: inset 1px 1px 0px #fff, inset -1px -1px 0px #9ca3af;
+    }
+
+    .beveled-inset {
+      background: #e5e7eb;
+      border: 2px solid;
+      border-color: #4b5563 #f3f4f6 #f3f4f6 #4b5563;
+      box-shadow: inset 1px 1px 0px #00000010;
+    }
+
+    .button-90s {
+      background: #d1d5db;
+      border: 2px solid;
+      border-color: #f3f4f6 #4b5563 #4b5563 #f3f4f6;
+      box-shadow: inset 1px 1px 0px #fff, inset -1px -1px 0px #9ca3af;
+      padding: 4px 12px;
+      font-weight: 700; font-size: 11px;
+      text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 6px;
+      cursor: pointer; color: #0c4a6e;
+    }
+    .button-90s:active {
+      border-color: #4b5563 #f3f4f6 #f3f4f6 #4b5563;
+      box-shadow: inset -1px -1px 0px #fff, inset 1px 1px 0px #9ca3af;
+    }
+    .button-90s-primary {
+      background: #0ea5e9; color: white;
+      border-color: #38bdf8 #0369a1 #0369a1 #38bdf8;
+      box-shadow: inset 1px 1px 0px #7dd3fc, inset -1px -1px 0px #0284c7;
+    }
+    .button-90s-primary:active {
+      border-color: #0369a1 #38bdf8 #38bdf8 #0369a1;
+    }
+
+    .input-90s {
+      background: #e5e7eb;
+      border: 2px solid;
+      border-color: #4b5563 #f3f4f6 #f3f4f6 #4b5563;
+      padding: 4px 8px; font-size: 12px; color: #0c4a6e;
+      outline: none; width: 100%;
+      font-family: 'Space Grotesk', monospace;
+    }
+    .input-90s:focus { background: #fff; border-color: #1d4ed8 #bfdbfe #bfdbfe #1d4ed8; }
+
+    .table-90s thead th {
+      background: #9ca3af; border: 1px solid #4b5563;
+      color: #111827; font-weight: 700;
+    }
+    .table-90s td { border: 1px solid #cbd5e1; }
+    .manifest-row:hover { background-color: #cbd5e1 !important; }
+
+    ::-webkit-scrollbar { width: 16px; height: 16px; }
+    ::-webkit-scrollbar-track { background: #d1d5db; box-shadow: inset 1px 1px 0 #9ca3af; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border: 2px solid; border-color: #f3f4f6 #4b5563 #4b5563 #f3f4f6; }
+
+    ::selection { background: #0c4a6e; color: #f3f4f6; }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .cursor-blink { animation: blink 1s step-end infinite; }
+    .status-blink { animation: blink 2s step-end infinite; }
+  </style>
 </head>
 <body>
-  <app-root></app-root>
+<app-root></app-root>
 </body>
 </html>
