@@ -56,12 +56,18 @@
             <div (click)="selectDraft(draft)" class="border border-zinc-700 hover:border-[#F5F0E8] p-3 transition-colors cursor-crosshair">
               <div class="flex justify-between items-start mb-2">
                 <span class="text-[10px] font-bold bg-[#F5F0E8] text-zinc-950 px-1">DRAFT_ID: {{ draft.id }}</span>
-                <span class="text-[10px] font-mono opacity-60">{{ draft.timestamp | date:'yyyy.MM.dd // HH:mm:ss' }}</span>
+                <span class="text-[10px] font-mono opacity-60">
+                  DB_LINEAR_T // {{ draft.timestamp | date:'yyyy.MM.dd HH:mm:ss' }}
+                </span>
               </div>
               <div class="grid grid-cols-2 gap-4 mb-3">
                 <div>
                   <p class="text-[9px] uppercase opacity-50 mb-1">Timeline Ref</p>
-                  <p class="text-xs font-mono">{{ draft.keywords || 'N/A' }}</p>
+                  <p class="text-xs font-mono">{{ draft.timelineName || 'UNASSIGNED' }}</p>
+                </div>
+                <div>
+                  <p class="text-[9px] uppercase opacity-50 mb-1">Temporal Coord</p>
+                  <p class="text-xs font-mono">{{ draft.year || 'N/A' }}</p>
                 </div>
               </div>
               <p class="text-[11px] leading-tight border-t border-zinc-800 pt-2 opacity-80">{{ draft.description }}</p>

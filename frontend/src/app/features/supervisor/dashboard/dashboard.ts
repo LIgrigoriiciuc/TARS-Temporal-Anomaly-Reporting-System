@@ -35,12 +35,20 @@ export class Dashboard implements OnInit {
 
   createUser() {
     this.userService.createUser(this.newUser).subscribe({
-      next: () => { this.showCreateForm = false; this.newUser = { name: '', email: '', password: '', role: 'AGENT' }; this.loadUsers(); }
+      next: (created) => {
+        this.users = [...this.users, created];
+        this.showCreateForm = false;
+        this.newUser = { name: '', email: '', password: '', role: 'AGENT' };
+      }
     });
   }
 
   deactivateUser(id: number) {
-    this.userService.deactivateUser(id).subscribe({ next: () => this.loadUsers() });
+    this.userService.deactivateUser(id).subscribe({
+      next: () => {
+        this.users = this.users.map(u => u.id === id ? {...u, status: 'INACTIVE'} : u);
+      }
+    });
   }
 
   logout() {

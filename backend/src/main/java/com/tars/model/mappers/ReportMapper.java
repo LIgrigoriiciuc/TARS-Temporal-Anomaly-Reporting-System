@@ -15,6 +15,10 @@ public class ReportMapper {
         dto.setKeywords(report.getKeywords());
         dto.setStatus(report.getStatus().name());
         dto.setTimestamp(report.getTimestamp());
+        if (report.getTimeline() != null) {
+            dto.setTimelineName(report.getTimeline().getName());
+            dto.setTimelineId(report.getTimeline().getId());
+        }
         return dto;
     }
 
