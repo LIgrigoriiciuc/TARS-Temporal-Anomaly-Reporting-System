@@ -21,4 +21,7 @@ export class DraftService {
   getTimelines() {
     return this.http.get<any[]>('http://localhost:8080/api/reports/timelines', { withCredentials: true });
   }
+  updateDraft(id: number, dto: any) {
+    return this.http.put(`${this.apiUrl}/drafts/${id}`, dto, { withCredentials: true });
+  }
 }

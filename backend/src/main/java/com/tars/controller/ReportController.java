@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,5 +62,21 @@ public class ReportController {
     @GetMapping("/timelines")
     public ResponseEntity<List<Timeline>> getTimelines() {
         return ResponseEntity.ok(timelineRepository.findAll());
+    }
+
+    @PutMapping("/drafts/{id}")
+    public ResponseEntity<ReportDTO> updateDraft(@PathVariable Long id, @RequestBody ReportDTO dto, Authentication authentication) {
+        Agent agent = (Agent) authentication.getPrincipal();
+        ObservationReport existing = reportService.getDraft(id, agent.getId());
+        existing.setDescription(dto.getDescription());
+        existing.setYear(dto.getYear());
+        existing.setKeywords(dto.getKeywords());
+        if (dto.getTimelineId() != null) {
+            Timeline timeline = timelineRepository.findById(dto.getTimelineId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
+            existing.setTimeline(timeline);
+        }
+        ObservationReport saved = reportService.saveAsDraft(existing, agent, dto.getTimelineId());
+        return ResponseEntity.ok(ReportMapper.toDto(saved));
     }
 }

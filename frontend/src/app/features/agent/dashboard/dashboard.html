@@ -82,8 +82,11 @@
     <!-- RIGHT COLUMN: FORM -->
     <div class="lg:col-span-4 flex flex-col gap-4">
       <section class="border border-[#F5F0E8] flex flex-col">
-        <div class="bg-zinc-800/50 px-4 py-2 border-b border-[#F5F0E8]">
-          <h2 class="text-xs font-bold uppercase tracking-widest">Input Protocol // New Entry</h2>
+        <div class="bg-zinc-800/50 px-4 py-2 border-b border-[#F5F0E8] flex justify-between items-center">
+          <h2 class="text-xs font-bold uppercase tracking-widest">Input Protocol // {{ selectedDraftId ? 'EDIT_ENTRY' : 'New Entry' }}</h2>
+          @if (selectedDraftId) {
+            <button (click)="clearSelection()" class="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-white">NEW_ENTRY</button>
+          }
         </div>
         <div class="p-4 flex flex-col gap-6">
           <div class="flex flex-col gap-2">
@@ -107,7 +110,7 @@
           </div>
           <div class="flex flex-col gap-3 pt-4">
             <button (click)="saveDraft()" class="w-full border border-[#F5F0E8] py-2 text-xs font-bold uppercase tracking-widest hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75">
-              PRESERVE_DRAFT
+              {{ selectedDraftId ? 'UPDATE_DRAFT' : 'PRESERVE_DRAFT' }}
             </button>
             <button class="w-full bg-[#F5F0E8] text-zinc-950 py-3 text-xs font-black uppercase tracking-widest hover:opacity-80 transition-opacity">
               COMMIT_TO_DATABASE
