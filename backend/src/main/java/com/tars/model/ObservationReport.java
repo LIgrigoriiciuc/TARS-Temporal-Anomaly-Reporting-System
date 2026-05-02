@@ -38,4 +38,8 @@ public class ObservationReport {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id", nullable = false)
     private Agent agent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "timeline_id")
+    private Timeline timeline;
 }

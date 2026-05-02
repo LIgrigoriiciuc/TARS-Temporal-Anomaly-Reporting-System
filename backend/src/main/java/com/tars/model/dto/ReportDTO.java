@@ -12,4 +12,6 @@ public class ReportDTO {
     private String keywords;
     private String status;
     private LocalDateTime timestamp;
+    private Long timelineId;
+    private String timelineName;
 }
