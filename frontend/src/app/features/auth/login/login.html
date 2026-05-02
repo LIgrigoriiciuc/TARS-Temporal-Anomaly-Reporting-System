@@ -1,1 +1,77 @@
-<p>login works!</p>
+<div class="grain-overlay"></div>
+<div class="scanlines"></div>
+
+<div class="fixed inset-0 z-0 overflow-hidden opacity-20">
+  <img class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk_1a7gNwSsdnwe3i377T0-gKbrDg2LNjFMAsSAKvYbBMUEFp3WFSNZlC2VfZ6BQhH2YB7rV1vd00JqpXJ5L-stqVBBllLX3vlf0_nz8wXRcF_9MH9Lhtql0NW9BJAcGpWwqGcFEUdRpDcGK00Z7srr3gxFZnRZbC9rxeKSERr7gNTKS8aKUXTJ9FfPJc3hRxhjG62uM5cV0Glh60sJCIsp0W2QXD6ypZP9LaKHwkfHiq982MUiR3A85FlNDQdN8XETP_ZRc52gJcT"/>
+</div>
+
+<main class="relative z-10 flex min-h-screen items-center justify-center p-gutter">
+  <section class="w-full max-w-[420px] bg-zinc-950 border border-[#F5F0E8] flex flex-col shadow-none">
+    <header class="h-8 border-b border-[#F5F0E8] px-4 flex items-center justify-between bg-zinc-900">
+      <h1 class="font-label-caps text-label-caps uppercase tracking-widest text-white flex items-center gap-2">
+        <span class="material-symbols-outlined text-[14px]">terminal</span>
+        SECURE_TERMINAL_V9.4
+      </h1>
+      <div class="flex gap-2">
+        <div class="w-2 h-2 bg-red-500"></div>
+        <div class="w-2 h-2 bg-white opacity-20"></div>
+      </div>
+    </header>
+
+    <div class="p-8 space-y-6">
+      <div class="space-y-1">
+        <p class="text-xs font-bold text-white opacity-50 uppercase tracking-tighter">TEMPORAL_ANOMALY_REPORTING_SYSTEM</p>
+        <p class="text-xs text-white opacity-30 font-mono">RESTRICTED ACCESS // LEVEL 4 CLEARANCE REQUIRED</p>
+      </div>
+
+      <div class="space-y-4">
+        <div class="space-y-1">
+          <label class="font-label-caps text-label-caps text-white opacity-80">IDENTITY_HASH</label>
+          <input [(ngModel)]="email"
+                 class="w-full bg-transparent border border-[#F5F0E8] focus:ring-0 text-white font-mono px-3 py-2 text-sm placeholder:opacity-20 focus:outline-none"
+                 placeholder="SHA-256_UID_XXXX" type="text"/>
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-caps text-label-caps text-white opacity-80">ACCESS_KEY</label>
+          <div class="relative">
+            <input [(ngModel)]="password"
+                   class="w-full bg-transparent border border-[#F5F0E8] focus:ring-0 text-white font-mono px-3 py-2 text-sm focus:outline-none"
+                   type="password"/>
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 cursor-blink text-white opacity-50 font-bold">_</span>
+          </div>
+        </div>
+      </div>
+
+      @if (errorMessage) {
+        <p class="text-red-400 text-xs font-mono">! ERROR_CODE: {{ errorMessage }}</p>
+      }
+
+      <button (click)="onLogin()"
+              class="w-full border border-[#F5F0E8] py-3 font-label-caps text-label-caps tracking-[0.2em] text-[#F5F0E8] hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75 cursor-crosshair active:opacity-80">
+        [INITIALIZE_LINK]
+      </button>
+
+      <div class="flex items-center justify-between pt-4 border-t border-[#F5F0E8] border-opacity-10">
+        <div class="flex gap-4">
+          <a class="text-[10px] text-white opacity-50 hover:opacity-100 hover:underline" href="#">RECOVER_SEED</a>
+          <a class="text-[10px] text-white opacity-50 hover:opacity-100 hover:underline" href="#">ENCRYPT_KEY</a>
+        </div>
+        <span class="text-[10px] text-white opacity-30">ERR_LOG: 0</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="fixed bottom-0 left-0 w-full flex justify-between items-center px-4 py-1 z-50 bg-zinc-950 border-t border-[#F5F0E8] font-mono text-[10px] tracking-tighter uppercase text-[#F5F0E8]">
+  <div class="flex items-center gap-3">
+    <span class="status-blink">SYSTEM STATUS: ONLINE</span>
+    <span class="opacity-30">|</span>
+    <span class="opacity-70">UTC_TIME_SYNC: ACTIVE</span>
+    <span class="opacity-30">|</span>
+    <span class="opacity-70">BUILD_94.08.12</span>
+  </div>
+  <nav class="flex items-center gap-6">
+    <a class="opacity-70 hover:opacity-100 hover:bg-[#F5F0E8] hover:text-zinc-950 px-2 cursor-help transition-all duration-75" href="#">PROTOCOLS</a>
+    <a class="opacity-70 hover:opacity-100 hover:bg-[#F5F0E8] hover:text-zinc-950 px-2 cursor-help transition-all duration-75" href="#">MANUAL</a>
+  </nav>
+</footer>

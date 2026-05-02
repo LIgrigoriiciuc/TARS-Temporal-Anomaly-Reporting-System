@@ -1,11 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Frontend</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700;900&family=Public+Sans:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#141313", "on-surface": "#e6e2e0",
+            "outline": "#949088", "outline-variant": "#49473f",
+            "surface-container": "#201f1f", "surface-container-low": "#1c1b1b",
+            "surface-container-high": "#2b2a29", "on-surface-variant": "#cbc6bc",
+            "error": "#ffb4ab", "tertiary-fixed-dim": "#ffb950",
+            "surface-variant": "#363434", "surface-bright": "#3a3938"
+          },
+          borderRadius: { "DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px" },
+          fontFamily: {
+            "body-mono": ["monospace"],
+            "label-caps": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"]
+          },
+          fontSize: {
+            "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.15em", fontWeight: "700" }],
+            "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "headline-md": ["18px", { lineHeight: "24px", letterSpacing: "0.05em", fontWeight: "600" }],
+            "body-mono": ["13px", { lineHeight: "18px", letterSpacing: "0.02em", fontWeight: "400" }]
+          },
+          spacing: { "gutter": "16px" }
+        }
+      }
+    }
+  </script>
 </head>
 <body>
   <app-root></app-root>

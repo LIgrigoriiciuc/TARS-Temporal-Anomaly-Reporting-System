@@ -1,1 +1,121 @@
-<p>dashboard works!</p>
+<div class="grain-overlay"></div>
+<div class="scanlines"></div>
+
+<header class="bg-zinc-950 text-[#F5F0E8] font-['Space_Grotesk'] uppercase tracking-widest text-xs font-bold border-b border-[#F5F0E8] flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50">
+  <div class="flex items-center gap-4">
+    <span class="material-symbols-outlined text-lg">terminal</span>
+    <span class="text-lg font-black tracking-[0.2em]">TARS // TEMPORAL_ANOMALY_REPORTING_SYSTEM</span>
+  </div>
+  <div class="flex items-center gap-6">
+    <div class="text-[10px] opacity-60 flex flex-col items-end">
+      <span>MODE: OVERRIDE_ENABLED</span>
+      <span class="font-mono">{{ currentTime }}</span>
+    </div>
+    <button (click)="logout()" class="bg-[#F5F0E8] text-zinc-950 px-3 py-1 hover:bg-zinc-800 hover:text-[#F5F0E8] transition-colors duration-75 border border-[#F5F0E8] font-bold">
+      SEVER_CONNECTION
+    </button>
+  </div>
+</header>
+
+<div class="flex min-h-[calc(100vh-64px)]">
+  <aside class="w-16 md:w-64 border-r border-[#F5F0E8] flex flex-col pt-4">
+    <nav class="flex-1 px-4 space-y-4">
+      <div>
+        <span class="font-label-caps text-label-caps text-on-surface-variant block mb-2 px-2">CORE_SYSTEMS</span>
+        <ul class="space-y-1">
+          <li class="bg-[#F5F0E8] text-zinc-950 px-2 py-2 flex items-center gap-3 cursor-crosshair">
+            <span class="material-symbols-outlined text-sm">supervisor_account</span>
+            <span class="hidden md:inline font-label-caps text-label-caps">PERSONNEL_REGISTRY</span>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="flex-1 p-4 mb-12">
+    <div class="flex justify-between items-end mb-8 border-b-2 border-white pb-4">
+      <div>
+        <h1 class="font-headline-lg text-headline-lg uppercase tracking-tighter">Personnel Registry</h1>
+        <p class="font-body-mono text-body-mono text-on-surface-variant mt-2 uppercase">Authorized clearance level: 4-SIGMA</p>
+      </div>
+      <button (click)="showCreateForm = true" class="border border-[#F5F0E8] px-6 py-2 font-label-caps text-label-caps hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">person_add</span>
+        ENLIST_PERSONNEL
+      </button>
+    </div>
+
+    <!-- Create User Form -->
+    @if (showCreateForm) {
+      <div class="border border-[#F5F0E8] p-6 mb-8 bg-zinc-900">
+        <h3 class="font-label-caps text-label-caps mb-4">NEW_PERSONNEL_ENTRY</h3>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">NAME</label>
+            <input [(ngModel)]="newUser.name" class="w-full bg-transparent border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none" type="text"/>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">EMAIL_IDENTITY</label>
+            <input [(ngModel)]="newUser.email" class="w-full bg-transparent border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none" type="text"/>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">ACCESS_KEY</label>
+            <input [(ngModel)]="newUser.password" class="w-full bg-transparent border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none" type="password"/>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-widest text-zinc-400 block mb-1">ROLE_CLEARANCE</label>
+            <select [(ngModel)]="newUser.role" class="w-full bg-zinc-950 border border-[#F5F0E8] text-white font-mono px-3 py-2 text-sm focus:outline-none">
+              <option value="AGENT">AGENT</option>
+              <option value="SUPERVISOR">SUPERVISOR</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button (click)="createUser()" class="border border-[#F5F0E8] px-6 py-2 text-xs uppercase tracking-widest hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors">ENLIST</button>
+          <button (click)="showCreateForm = false" class="border border-zinc-600 px-6 py-2 text-xs uppercase tracking-widest hover:bg-zinc-800 transition-colors">CANCEL</button>
+        </div>
+      </div>
+    }
+
+    <div class="border border-outline bg-surface-container">
+      <div class="bg-outline-variant px-4 py-2 flex justify-between items-center">
+        <span class="font-label-caps text-label-caps text-surface">ENLISTED_ENTITIES_MANIFEST</span>
+      </div>
+      <table class="w-full font-body-mono text-left border-collapse">
+        <thead>
+        <tr class="bg-zinc-900 border-b border-outline-variant">
+          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">ID_STRING</th>
+          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">EMAIL_IDENTITY</th>
+          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">ROLE_CLEARANCE</th>
+          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant">STATUS_STATE</th>
+          <th class="p-4 font-label-caps text-label-caps text-on-surface-variant text-right">SYSTEM_ACTIONS</th>
+        </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/30">
+          @for (user of users; track user.id) {
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="p-4 text-outline font-bold">#{{ user.id }}</td>
+              <td class="p-4">{{ user.email }}</td>
+              <td class="p-4"><span class="border border-outline px-2 py-0.5 text-[10px]">{{ user.role }}</span></td>
+              <td class="p-4">
+                @if (user.status === 'ACTIVE') {
+                  <span class="text-yellow-500">● ACTIVE</span>
+                } @else {
+                  <span class="opacity-50">○ INACTIVE</span>
+                }
+              </td>
+              <td class="p-4 text-right">
+                @if (user.status === 'ACTIVE') {
+                  <button (click)="deactivateUser(user.id)" class="text-red-400 hover:text-red-300 hover:underline text-xs font-bold">TERMINATE_ACCESS</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<footer class="fixed bottom-0 left-0 w-full flex justify-between items-center px-4 py-1 z-50 bg-zinc-950 border-t border-[#F5F0E8] font-mono text-[10px] uppercase text-[#F5F0E8]">
+  <span>SYSTEM STATUS: ONLINE // UTC_TIME_SYNC: ACTIVE // BUILD_94.08.12</span>
+</footer>
