@@ -1,1 +1,131 @@
-<p>dashboard works!</p>
+<div class="scanlines"></div>
+<div class="grain-overlay"></div>
+
+<header class="flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 bg-zinc-950 border-b border-[#F5F0E8]">
+  <div class="flex items-center gap-4">
+    <span class="material-symbols-outlined text-lg">terminal</span>
+    <h1 class="text-lg font-black tracking-[0.2em] text-[#F5F0E8] font-['Space_Grotesk'] uppercase">TARS // FIELD_MODULE</h1>
+  </div>
+  <div class="flex items-center gap-6">
+    <button (click)="logout()" class="text-xs font-bold border border-[#F5F0E8] px-3 py-1 hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75">SEVER_CONNECTION</button>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto p-4 mb-12">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- LEFT COLUMN -->
+    <div class="lg:col-span-3 flex flex-col gap-4">
+      <section class="border border-[#F5F0E8] p-4 flex flex-col gap-4">
+        <div class="flex justify-between items-start">
+          <h2 class="text-xs font-bold uppercase tracking-widest">System Telemetry</h2>
+          <div class="radar-pulse"></div>
+        </div>
+        <div class="text-[10px] space-y-2 opacity-80">
+          <div class="flex justify-between border-b border-zinc-800 pb-1">
+            <span>LATENCY</span><span>0.0004 MS</span>
+          </div>
+          <div class="flex justify-between border-b border-zinc-800 pb-1">
+            <span>CORE_TEMP</span><span>34.2 K</span>
+          </div>
+          <div class="flex justify-between border-b border-zinc-800 pb-1">
+            <span>RE-ENTRY_LOCK</span><span class="text-amber-500">NOMINAL</span>
+          </div>
+        </div>
+        <div class="w-full aspect-square bg-zinc-900/50 border border-zinc-800 relative flex items-center justify-center overflow-hidden">
+          <div class="absolute inset-0 border border-zinc-800 m-4 rounded-full"></div>
+          <div class="absolute inset-0 border border-zinc-800 m-12 rounded-full opacity-50"></div>
+          <div class="absolute inset-0 border border-zinc-800 m-20 rounded-full opacity-30"></div>
+          <div class="w-[1px] h-full bg-[#F5F0E8]/20 absolute left-1/2"></div>
+          <div class="h-[1px] w-full bg-[#F5F0E8]/20 absolute top-1/2"></div>
+          <div class="absolute top-1/4 left-1/3 w-1 h-1 bg-[#F5F0E8]"></div>
+          <div class="absolute bottom-1/2 right-1/4 w-1 h-1 bg-[#F5F0E8] animate-pulse"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- MIDDLE COLUMN: DRAFTS -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      <div class="border border-[#F5F0E8] h-full flex flex-col">
+        <div class="bg-zinc-800/50 px-4 py-2 border-b border-[#F5F0E8] flex justify-between items-center">
+          <h2 class="text-xs font-bold uppercase tracking-widest">Observation Queue // Drafts</h2>
+          <span class="text-[10px] opacity-60">COUNT: {{ drafts.length }}</span>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+          @for (draft of drafts; track draft.id) {
+            <div (click)="selectDraft(draft)" class="border border-zinc-700 hover:border-[#F5F0E8] p-3 transition-colors cursor-crosshair">
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-[10px] font-bold bg-[#F5F0E8] text-zinc-950 px-1">DRAFT_ID: {{ draft.id }}</span>
+                <span class="text-[10px] font-mono opacity-60">{{ draft.timestamp | date:'yyyy.MM.dd // HH:mm:ss' }}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <p class="text-[9px] uppercase opacity-50 mb-1">Timeline Ref</p>
+                  <p class="text-xs font-mono">{{ draft.keywords || 'N/A' }}</p>
+                </div>
+              </div>
+              <p class="text-[11px] leading-tight border-t border-zinc-800 pt-2 opacity-80">{{ draft.description }}</p>
+              <button (click)="$event.stopPropagation(); deleteDraft(draft.id)" class="mt-2 text-red-400 hover:text-red-300 text-[10px] uppercase tracking-widest">DELETE</button>
+            </div>
+          }
+          @if (drafts.length === 0) {
+            <div class="border border-zinc-700 border-dashed p-3 opacity-50">
+              <div class="h-12 flex items-center justify-center">
+                <span class="text-[10px] uppercase tracking-tighter italic">No drafts found...</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: FORM -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <section class="border border-[#F5F0E8] flex flex-col">
+        <div class="bg-zinc-800/50 px-4 py-2 border-b border-[#F5F0E8]">
+          <h2 class="text-xs font-bold uppercase tracking-widest">Input Protocol // New Entry</h2>
+        </div>
+        <div class="p-4 flex flex-col gap-6">
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Log_Description</label>
+            <textarea [(ngModel)]="draft.description" class="bg-zinc-950 border border-[#F5F0E8] p-3 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none min-h-[120px] resize-none" placeholder="Enter detailed observation data here..."></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Temporal_Coord</label>
+              <input [(ngModel)]="draft.year" class="bg-zinc-950 border-b border-[#F5F0E8] border-t-0 border-l-0 border-r-0 p-1 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none" type="number" placeholder="2024"/>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Timeline_Vector</label>
+              <input [(ngModel)]="draft.keywords" class="bg-zinc-950 border-b border-[#F5F0E8] border-t-0 border-l-0 border-r-0 p-1 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none" placeholder="Vector_XYZ" type="text"/>
+            </div>
+          </div>
+          <div class="flex flex-col gap-3 pt-4">
+            <button (click)="saveDraft()" class="w-full border border-[#F5F0E8] py-2 text-xs font-bold uppercase tracking-widest hover:bg-[#F5F0E8] hover:text-zinc-950 transition-colors duration-75">
+              PRESERVE_DRAFT
+            </button>
+            <button class="w-full bg-[#F5F0E8] text-zinc-950 py-3 text-xs font-black uppercase tracking-widest hover:opacity-80 transition-opacity">
+              COMMIT_TO_DATABASE
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="border border-[#F5F0E8] overflow-hidden">
+        <img class="w-full h-32 object-cover grayscale brightness-50 contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE-pn3z_GsN5vkZ5DdZr3F_QPia6ZWdBItIHnOltCtHoeZWLtD78ZaCnaTyMClKrPV5nonEJA21OjlRskwyWuVSzK4W3bEcHpQ2DPnkoHZd3AjcUcXXDS8WIxzYY9XGA1-XU5fudHYAaPcvjbkA12eAfkaDY5OdldCRHx0uQLV2a_2wO_2XAwvP0u_rb-r3plCIpLm3Wl7DdizLalwXNEmP3h1SPufE2WqyYY1GLoX0YLAhbRLsiybTxA5PfW6Ed5aqtBfzHQOSxe3"/>
+        <div class="p-2 bg-zinc-900 flex justify-between items-center border-t border-[#F5F0E8]">
+          <span class="text-[9px] uppercase font-bold">Local_Map_Feed // Active</span>
+          <span class="text-[9px] font-mono">0.0031°N 32.1112°W</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="fixed bottom-0 left-0 w-full flex justify-between items-center px-4 py-1 z-50 bg-zinc-950 border-t border-[#F5F0E8] font-mono text-[10px] uppercase">
+  <div class="flex gap-4">
+    <span class="opacity-70">SYSTEM STATUS: <span class="text-green-400">ONLINE</span></span>
+    <span class="opacity-70">BUILD_94.08.12</span>
+  </div>
+  <span>Active_User: {{ email }}</span>
+</footer>
