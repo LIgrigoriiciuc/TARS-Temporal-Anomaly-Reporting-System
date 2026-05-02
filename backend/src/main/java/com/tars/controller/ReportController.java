@@ -2,8 +2,10 @@ package com.tars.controller;
 
 import com.tars.model.Agent;
 import com.tars.model.ObservationReport;
+import com.tars.model.Timeline;
 import com.tars.model.dto.ReportDTO;
 import com.tars.model.mappers.ReportMapper;
+import com.tars.repository.TimelineRepository;
 import com.tars.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,13 +22,13 @@ import java.util.stream.Collectors;
 public class ReportController {
 
     private final ReportService reportService;
+    private final TimelineRepository timelineRepository;
 
-    // UC-06: Save as draft
     @PostMapping("/drafts")
     public ResponseEntity<ReportDTO> saveDraft(@RequestBody ReportDTO dto, Authentication authentication) {
         Agent agent = (Agent) authentication.getPrincipal();
         ObservationReport draft = ReportMapper.toEntity(dto);
-        ObservationReport saved = reportService.saveAsDraft(draft, agent);
+        ObservationReport saved = reportService.saveAsDraft(draft, agent, dto.getTimelineId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ReportMapper.toDto(saved));
     }
 
@@ -55,5 +57,9 @@ public class ReportController {
         Agent agent = (Agent) authentication.getPrincipal();
         reportService.deleteDraft(id, agent.getId());
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/timelines")
+    public ResponseEntity<List<Timeline>> getTimelines() {
+        return ResponseEntity.ok(timelineRepository.findAll());
     }
 }

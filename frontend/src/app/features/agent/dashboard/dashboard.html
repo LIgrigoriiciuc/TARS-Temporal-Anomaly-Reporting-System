@@ -97,7 +97,12 @@
             </div>
             <div class="flex flex-col gap-2">
               <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Timeline_Vector</label>
-              <input [(ngModel)]="draft.keywords" class="bg-zinc-950 border-b border-[#F5F0E8] border-t-0 border-l-0 border-r-0 p-1 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none" placeholder="Vector_XYZ" type="text"/>
+              <select [(ngModel)]="draft.timelineId" class="bg-zinc-950 border-b border-[#F5F0E8] border-t-0 border-l-0 border-r-0 p-1 text-xs font-mono text-[#F5F0E8] focus:ring-0 focus:outline-none">
+                <option [value]="null">SELECT_VECTOR</option>
+                @for (t of timelines; track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
             </div>
           </div>
           <div class="flex flex-col gap-3 pt-4">

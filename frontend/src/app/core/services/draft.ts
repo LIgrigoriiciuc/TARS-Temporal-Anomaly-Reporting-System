@@ -18,4 +18,7 @@ export class DraftService {
   deleteDraft(id: number) {
     return this.http.delete(`${this.apiUrl}/drafts/${id}`, { withCredentials: true });
   }
+  getTimelines() {
+    return this.http.get<any[]>('http://localhost:8080/api/reports/timelines', { withCredentials: true });
+  }
 }

@@ -12,13 +12,15 @@ import { DraftService } from '../../../core/services/draft';
 })
 export class Dashboard implements OnInit {
   drafts: any[] = [];
+  timelines: any[] = [];
   email = localStorage.getItem('email') || '';
-  draft = { description: '', year: null, keywords: '' };
+  draft = { description: '', year: null, keywords: '', timelineId: null };
 
   constructor(private authService: AuthService, private draftService: DraftService) {}
 
   ngOnInit() {
     this.loadDrafts();
+    this.loadTimelines();
   }
 
   loadDrafts() {
@@ -27,12 +29,15 @@ export class Dashboard implements OnInit {
 
   saveDraft() {
     this.draftService.saveDraft(this.draft).subscribe({
-      next: () => { this.draft = { description: '', year: null, keywords: '' }; this.loadDrafts(); }
+      next: () => {
+        this.draft = { description: '', year: null, keywords: '', timelineId: null };
+        this.loadDrafts();
+      }
     });
   }
 
   selectDraft(d: any) {
-    this.draft = { description: d.description, year: d.year, keywords: d.keywords };
+    this.draft = { description: d.description, year: d.year, keywords: d.keywords, timelineId: d.timelineId };
   }
 
   deleteDraft(id: number) {
@@ -41,5 +46,9 @@ export class Dashboard implements OnInit {
 
   logout() {
     this.authService.logout().subscribe();
+  }
+
+  loadTimelines() {
+    this.draftService.getTimelines().subscribe({ next: (data) => this.timelines = data });
   }
 }
