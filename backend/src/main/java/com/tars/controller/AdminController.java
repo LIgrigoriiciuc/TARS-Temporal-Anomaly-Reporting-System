@@ -5,6 +5,7 @@ import com.tars.model.dto.UserRegistrationDTO;
 import com.tars.model.dto.UserResponseDTO;
 import com.tars.model.mappers.UserMapper;
 import com.tars.service.AdminService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +34,7 @@ public class AdminController {
 
     // UC-03: Create user account
     @PostMapping("/users")
-    public ResponseEntity<UserResponseDTO> createUser(@RequestBody UserRegistrationDTO dto) {
+    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRegistrationDTO dto) {
         User created = adminService.createUser(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(UserMapper.toDto(created));
     }
