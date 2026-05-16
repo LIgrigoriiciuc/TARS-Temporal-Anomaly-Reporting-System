@@ -4,6 +4,8 @@ import com.tars.model.User;
 import com.tars.model.dto.UserRegistrationDTO;
 import com.tars.model.enums.UserStatus;
 import com.tars.model.mappers.UserMapper;
+import com.tars.repository.AgentRepository;
+import com.tars.repository.SupervisorRepository;
 import com.tars.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -22,6 +26,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 @Service
 @RequiredArgsConstructor
 public class AdminService {
+
+    private final AgentRepository agentRepository;
+    private final SupervisorRepository supervisorRepository;
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -47,9 +54,12 @@ public class AdminService {
     }
 
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        List<User> users = new ArrayList<>();
+        users.addAll(agentRepository.findAll());
+        users.addAll(supervisorRepository.findAll());
+        users.sort(Comparator.comparing(User::getId));
+        return users;
     }
-
     private final JavaMailSender mailSender;
 
     @Transactional

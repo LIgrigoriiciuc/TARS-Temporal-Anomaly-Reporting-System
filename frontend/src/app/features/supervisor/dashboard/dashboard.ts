@@ -15,18 +15,20 @@ export class Dashboard implements OnInit {
   users: any[] = [];
   currentTime = '';
   newUser = { name: '', email: '', password: '', role: 'AGENT' };
-
+  private pollingInterval: any = null
   constructor(
     private authService: AuthService,
     private userService: UserService,
     private router: Router,
     private cdr: ChangeDetectorRef
+
   ) {}
 
   ngOnInit() {
     this.loadUsers();
     this.updateTime();
     setInterval(() => this.updateTime(), 1000);
+    this.pollingInterval = setInterval(() => this.loadUsers(), 5000);
   }
 
   updateTime() {
@@ -38,12 +40,19 @@ export class Dashboard implements OnInit {
       next: (data) => {
         this.users = data.sort((a, b) => a.id - b.id);
         this.cdr.detectChanges();
-      }
+      },
+      error: (err) => console.error('loadUsers error:', err)
     });
   }
 
   createUser() {
-    const payload = { ...this.newUser };
+    const payload = {
+      name: this.newUser.name,
+      email: this.newUser.email,
+      password: this.newUser.password,
+      role: this.newUser.role
+    };
+
     this.userService.createUser(payload).subscribe({
       next: () => {
         this.newUser = { name: '', email: '', password: '', role: 'AGENT' };
@@ -62,6 +71,7 @@ export class Dashboard implements OnInit {
   }
 
   logout() {
+    clearInterval(this.pollingInterval);
     this.authService.logout().subscribe();
   }
 }

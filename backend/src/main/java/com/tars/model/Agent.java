@@ -1,5 +1,6 @@
 package com.tars.model;
 
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "agents")
+@DiscriminatorValue("Agent")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

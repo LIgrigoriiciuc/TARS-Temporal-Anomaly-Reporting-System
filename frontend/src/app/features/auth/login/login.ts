@@ -28,8 +28,12 @@ export class Login {
           this.router.navigate(['/agent']);
         }
       },
-      error: () => {
-        this.errorMessage = 'Invalid credentials';
+      error: (err) => {
+        if (err.status === 403) {
+          this.errorMessage = 'ACCOUNT_TERMINATED // Access denied';
+        } else {
+          this.errorMessage = 'Invalid credentials';
+        }
       }
     });
   }

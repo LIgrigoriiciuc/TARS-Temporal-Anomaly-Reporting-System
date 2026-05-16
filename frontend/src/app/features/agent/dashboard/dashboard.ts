@@ -27,17 +27,27 @@ export class Dashboard implements OnInit {
   ngOnInit() {
     this.loadDrafts();
     this.loadTimelines();
+    setInterval(() => this.loadDrafts(), 5000);
   }
 
   loadDrafts() {
     this.draftService.getDrafts().subscribe({
-      next: (data) => { this.drafts = data; },
+      next: (data) => {
+        this.drafts = data;
+        this.cdr.detectChanges();
+      },
       error: (err) => {
+        console.log('Draft error status:', err.status);
         if (err.status === 401 || err.status === 403) {
           this.accountTerminated = true;
-          setTimeout(() => this.authService.logout().subscribe(), 3000);
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            localStorage.clear();
+            window.location.href = '/login';
+          }, 3000);
         }
-      }
+      },
+      complete: () => {}
     });
   }
 
