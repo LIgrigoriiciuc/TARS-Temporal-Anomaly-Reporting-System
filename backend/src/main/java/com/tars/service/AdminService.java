@@ -6,6 +6,8 @@ import com.tars.model.enums.UserStatus;
 import com.tars.model.mappers.UserMapper;
 import com.tars.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,7 +25,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-
+    private static final Logger log = LoggerFactory.getLogger(AdminService.class);
     // UC-04: Deactivate user
     public void deactivateUser(Long targetId, Long currentUserId) {
         // UC-04 E1: Supervisor cannot deactivate their own account
@@ -38,6 +40,7 @@ public class AdminService {
         }
 
         user.setStatus(UserStatus.INACTIVE);
+        log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
         userRepository.save(user);
     }
 
@@ -59,7 +62,7 @@ public class AdminService {
 
         // UC-03 step 7: send credentials email
         sendCredentialsEmail(dto.getEmail(), dto.getName(), dto.getPassword());
-
+        log.info("USER_CREATED | email={} | role={}", dto.getEmail(), dto.getRole());
         return saved;
     }
 
