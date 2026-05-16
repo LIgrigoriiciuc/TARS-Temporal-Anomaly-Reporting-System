@@ -19,6 +19,8 @@ export class Login {
   constructor(private authService: AuthService, private router: Router) {}
 
   onLogin() {
+    //delete old cookie to prevent conflicts with new login
+    document.cookie = 'jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     this.authService.login(this.email, this.password).subscribe({
       next: (response) => {
         const role = response.role;

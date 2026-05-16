@@ -10,11 +10,11 @@ export class AuthService {
   constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string): Observable<any> {
-    //without withCredentials: true the HttpOnly cookie isn't sent w the requests
     return this.http.post(`${this.apiUrl}/login`, { email, password }, { withCredentials: true }).pipe(
       tap((response: any) => {
         localStorage.setItem('role', response.role);
         localStorage.setItem('email', response.email);
+        localStorage.setItem('userId', response.id);
       })
     );
   }

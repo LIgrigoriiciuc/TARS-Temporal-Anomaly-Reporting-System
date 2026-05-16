@@ -52,7 +52,7 @@ public class AuthController {
             User user = (User) authentication.getPrincipal();
             String role = user.getAuthorities().iterator().next().getAuthority();
             log.info("LOGIN_SUCCESS | user={}", loginRequest.getEmail());
-            return ResponseEntity.ok(new LoginResponseDTO(user.getEmail(), role));
+            return ResponseEntity.ok(new LoginResponseDTO(user.getEmail(), role,user.getId()));
         }catch (Exception e) {
             log.warn("LOGIN_FAILURE | user={} | reason={}", loginRequest.getEmail(), e.getMessage());
             throw e;

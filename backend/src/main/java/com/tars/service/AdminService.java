@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,10 +34,10 @@ public class AdminService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenDenylistService tokenDenylistService;
+    private final SimpMessagingTemplate messagingTemplate;
     private static final Logger log = LoggerFactory.getLogger(AdminService.class);
     // UC-04: Deactivate user
     public void deactivateUser(Long targetId, Long currentUserId) {
-        // UC-04 E1: Supervisor cannot deactivate their own account
         if (targetId.equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot deactivate your own account");
         }
@@ -50,15 +51,11 @@ public class AdminService {
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
         tokenDenylistService.blacklistUser(targetId);
-        log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
-    }
 
-    public List<User> getAllUsers() {
-        List<User> users = new ArrayList<>();
-        users.addAll(agentRepository.findAll());
-        users.addAll(supervisorRepository.findAll());
-        users.sort(Comparator.comparing(User::getId));
-        return users;
+        // Notify via WebSocket
+        messagingTemplate.convertAndSend("/topic/user-deactivated/" + targetId, "TERMINATED");
+
+        log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
     }
     private final JavaMailSender mailSender;
 
@@ -98,5 +95,12 @@ public class AdminService {
             // UC-03 E1: SMTP down — log error but don't fail account creation
             System.err.println("CRITICAL MAIL ERROR: " + e.getMessage());
         }
+    }
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        users.addAll(agentRepository.findAll());
+        users.addAll(supervisorRepository.findAll());
+        users.sort(Comparator.comparing(User::getId));
+        return users;
     }
 }

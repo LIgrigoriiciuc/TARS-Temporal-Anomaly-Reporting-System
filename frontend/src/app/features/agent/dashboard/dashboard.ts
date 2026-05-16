@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth';
 import { DraftService } from '../../../core/services/draft';
+import { WebSocketService } from '../../../core/services/websocket';
 
 @Component({
   selector: 'app-dashboard',
@@ -21,13 +22,26 @@ export class Dashboard implements OnInit {
   constructor(
     private authService: AuthService,
     private draftService: DraftService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private wsService: WebSocketService
   ) {}
 
   ngOnInit() {
     this.loadDrafts();
     this.loadTimelines();
-    setInterval(() => this.loadDrafts(), 5000);
+
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      this.wsService.connect((msg) => {
+        this.accountTerminated = true;
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          localStorage.clear();
+          this.wsService.disconnect();
+          window.location.href = '/login';
+        }, 3000);
+      }, `/topic/user-deactivated/${userId}`);
+    }
   }
 
   loadDrafts() {
@@ -43,7 +57,11 @@ export class Dashboard implements OnInit {
           this.cdr.detectChanges();
           setTimeout(() => {
             localStorage.clear();
-            window.location.href = '/login';
+            this.wsService.disconnect();
+            this.authService.logout().subscribe({
+              next: () => window.location.href = '/login',
+              error: () => window.location.href = '/login'
+            });
           }, 3000);
         }
       },
@@ -116,6 +134,7 @@ export class Dashboard implements OnInit {
   }
 
   logout() {
+    this.wsService.disconnect();
     this.authService.logout().subscribe();
   }
 }
