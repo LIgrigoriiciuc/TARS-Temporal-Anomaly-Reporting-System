@@ -15,6 +15,7 @@ export class Dashboard implements OnInit {
   timelines: any[] = [];
   email = localStorage.getItem('email') || '';
   selectedDraftId: number | null = null;
+  accountTerminated = false;
   draft = { description: '', year: null as number | null, keywords: '', timelineId: null as number | null };
 
   constructor(
@@ -30,7 +31,13 @@ export class Dashboard implements OnInit {
 
   loadDrafts() {
     this.draftService.getDrafts().subscribe({
-      next: (data) => { this.drafts = data; this.cdr.detectChanges(); }
+      next: (data) => { this.drafts = data; },
+      error: (err) => {
+        if (err.status === 401 || err.status === 403) {
+          this.accountTerminated = true;
+          setTimeout(() => this.authService.logout().subscribe(), 3000);
+        }
+      }
     });
   }
 

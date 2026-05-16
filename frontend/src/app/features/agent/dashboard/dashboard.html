@@ -1,3 +1,15 @@
+@if (accountTerminated) {
+  <div class="fixed inset-0 z-[9999] bg-[#d1d5db] flex items-center justify-center">
+    <div class="beveled-outset p-8 text-center max-w-sm">
+      <div class="w-12 h-12 bg-red-600 border-2 border-red-900 mx-auto mb-4 flex items-center justify-center">
+        <span class="material-symbols-outlined text-white">block</span>
+      </div>
+      <p class="font-black text-red-800 text-sm uppercase tracking-widest mb-2">ACCOUNT_TERMINATED</p>
+      <p class="text-primary/60 text-xs">Access revoked by Supervisor.</p>
+      <p class="text-primary/60 text-xs">Redirecting to login...</p>
+    </div>
+  </div>
+}
 <div class="crt-overlay"></div>
 <div class="pixel-grid"></div>
 
