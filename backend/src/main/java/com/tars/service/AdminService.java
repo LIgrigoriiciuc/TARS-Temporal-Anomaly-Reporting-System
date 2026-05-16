@@ -25,6 +25,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final TokenDenylistService tokenDenylistService;
     private static final Logger log = LoggerFactory.getLogger(AdminService.class);
     // UC-04: Deactivate user
     public void deactivateUser(Long targetId, Long currentUserId) {
@@ -40,8 +41,9 @@ public class AdminService {
         }
 
         user.setStatus(UserStatus.INACTIVE);
-        log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
         userRepository.save(user);
+        tokenDenylistService.blacklistUser(targetId);
+        log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
     }
 
     public List<User> getAllUsers() {

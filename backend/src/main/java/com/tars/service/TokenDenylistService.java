@@ -21,4 +21,14 @@ public class TokenDenylistService {
     public boolean isTokenBlacklisted(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(token));
     }
+
+    // Blacklist entire user (for deactivation)
+    public void blacklistUser(Long userId) {
+        redisTemplate.opsForValue().set("user_blocked:" + userId, "blocked",
+                Duration.ofHours(8)); // max JWT lifetime
+    }
+
+    public boolean isUserBlacklisted(Long userId) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey("user_blocked:" + userId));
+    }
 }
