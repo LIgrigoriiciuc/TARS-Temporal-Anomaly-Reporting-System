@@ -1,13 +1,14 @@
 package com.tars.model.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Response DTO — what backend returns to Angular for draft data.
  * Includes server-generated fields: id, status, timestamp, timelineName.
  */
 @Data
+@AllArgsConstructor
 public class DraftResponseDTO {
     private Long id;
     private String description;

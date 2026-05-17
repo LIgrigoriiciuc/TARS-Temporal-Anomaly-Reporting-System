@@ -59,4 +59,13 @@ public class JwtUtils {
     public long getExpirationMs() {
         return jwtExpirationMs;
     }
+
+    public Date getExpirationDateFromToken(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getExpiration();
+    }
 }

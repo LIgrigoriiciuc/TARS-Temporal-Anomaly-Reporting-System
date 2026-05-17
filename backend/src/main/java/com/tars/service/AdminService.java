@@ -21,10 +21,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Handles user lifecycle — UC-03, UC-04.
- * Works only with domain objects. Mapping happens in AdminController.
- */
 @Service
 @RequiredArgsConstructor
 public class AdminService {
@@ -38,25 +34,20 @@ public class AdminService {
     private final JavaMailSender mailSender;
     private static final Logger log = LoggerFactory.getLogger(AdminService.class);
 
-    // UC-03: Create user — receives already-mapped entity from controller
-    // Returns saved entity so controller can map it to response DTO
     @Transactional
     public User createUser(User user, String rawPassword, String email) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
-        // Hash password — security concern stays in service, not controller
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setStatus(UserStatus.ACTIVE);
         User saved = userRepository.save(user);
-
-        // UC-03 step 7: send credentials email
         sendCredentialsEmail(saved.getEmail(), saved.getName(), rawPassword);
         log.info("USER_CREATED | email={}", saved.getEmail());
         return saved;
     }
 
-    // UC-04: Deactivate user — invalidates session immediately via Redis + WebSocket
+    // invalidates session immediately via Redis + WebSocket
     @Transactional
     public void deactivateUser(Long targetId, Long currentUserId) {
         if (targetId.equals(currentUserId)) {
@@ -69,17 +60,13 @@ public class AdminService {
         }
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
-
-        // UC-04 POST-2: invalidate active JWT immediately
+        // invalidate active JWT immediately
         tokenDenylistService.blacklistUser(targetId);
-
-        // Notify agent via WebSocket — triggers redirect to login in Angular
+        // Notify agent via WebSocket, triggers redirect to log in in Angular
         messagingTemplate.convertAndSend("/topic/user-deactivated/" + targetId, "TERMINATED");
         log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
     }
 
-    // Returns all users sorted by id — combines agents + supervisors
-    // Uses separate repositories to avoid abstract User instantiation issue with JOINED inheritance
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         users.addAll(agentRepository.findAll());
@@ -88,7 +75,6 @@ public class AdminService {
         return users;
     }
 
-    // UC-03 E1: SMTP failure — logs error but does NOT fail account creation
     private void sendCredentialsEmail(String email, String name, String rawPassword) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -101,11 +87,11 @@ public class AdminService {
                             "IDENTITY_HASH: " + email + "\n" +
                             "ACCESS_KEY: " + rawPassword + "\n\n" +
                             "RESTRICTED ACCESS // LEVEL 4 CLEARANCE\n" +
-                            "Report to your supervisor immediately.\n\n" +
+                            "Report immediately.\n\n" +
                             "-- TARS SYSTEM AUTO-GENERATED --"
             );
             mailSender.send(message);
-        } catch (Exception e) {
+        } catch (Exception e) { //logs error but does NOT fail account creation
             log.error("CRITICAL MAIL ERROR: {}", e.getMessage());
         }
     }

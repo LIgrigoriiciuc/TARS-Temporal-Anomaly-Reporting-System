@@ -24,13 +24,10 @@ public class ReportMapper {
     // Entity → Response (used in controller after service returns)
     public static DraftResponseDTO toDto(ObservationReport report) {
         if (report == null) return null;
-        DraftResponseDTO dto = new DraftResponseDTO();
-        dto.setId(report.getId());
-        dto.setDescription(report.getDescription());
-        dto.setYear(report.getYear());
-        dto.setKeywords(report.getKeywords());
-        dto.setStatus(report.getStatus().name());
-        dto.setTimestamp(report.getTimestamp());
+        DraftResponseDTO dto = new DraftResponseDTO(report.getId(), report.getDescription(), report.getYear(),
+                report.getKeywords(), report.getStatus().name(), report.getTimestamp(),
+                report.getTimeline() != null ? report.getTimeline().getId() : null,
+                report.getTimeline() != null ? report.getTimeline().getName() : null);
         if (report.getTimeline() != null) {
             dto.setTimelineId(report.getTimeline().getId());
             dto.setTimelineName(report.getTimeline().getName());

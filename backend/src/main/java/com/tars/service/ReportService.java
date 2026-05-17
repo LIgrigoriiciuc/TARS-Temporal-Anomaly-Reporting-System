@@ -1,5 +1,4 @@
 package com.tars.service;
-
 import com.tars.model.Agent;
 import com.tars.model.ObservationReport;
 import com.tars.model.Timeline;
@@ -12,11 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-
-/**
- * Handles draft lifecycle — UC-06, UC-07.
- * Works only with domain objects. No DTOs here.
- */
 @Service
 @RequiredArgsConstructor
 public class ReportService {
@@ -24,7 +18,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final TimelineRepository timelineRepository;
 
-    // UC-06: Save new draft — at least one field must be filled
+    // Save new draft, at least one field must be filled
     public ObservationReport saveAsDraft(ObservationReport draft, Agent agent, Long timelineId) {
         if (draft.getDescription() == null && draft.getYear() == null && draft.getKeywords() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one field must be filled");
@@ -39,11 +33,11 @@ public class ReportService {
         return reportRepository.save(draft);
     }
 
-    // UC-07: Update existing draft — verifies ownership, applies changes, saves
-    public ObservationReport updateDraft(Long draftId, Long agentId,
-                                         String description, Integer year,
-                                         String keywords, Long timelineId) {
+    public ObservationReport updateDraft(Long draftId, Long agentId, String description, Integer year, String keywords, Long timelineId) {
         ObservationReport existing = getDraft(draftId, agentId);
+        if (description == null && year == null && keywords == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one field must be filled");
+        }
         existing.setDescription(description);
         existing.setYear(year);
         existing.setKeywords(keywords);
@@ -55,24 +49,20 @@ public class ReportService {
         return reportRepository.save(existing);
     }
 
-    // UC-07: Get all drafts for an agent
     public List<ObservationReport> getAgentDrafts(Long agentId) {
         return reportRepository.findByAgentIdAndStatus(agentId, ReportStatus.DRAFT);
     }
 
-    // UC-07: Get single draft — verifies ownership
     public ObservationReport getDraft(Long draftId, Long agentId) {
         return reportRepository.findByIdAndAgentId(draftId, agentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Draft not found"));
     }
 
-    // UC-07 A1: Delete draft — verifies ownership before deleting
     public void deleteDraft(Long draftId, Long agentId) {
         ObservationReport draft = getDraft(draftId, agentId);
         reportRepository.delete(draft);
     }
 
-    // Get all timelines — for dropdown in agent form
     public List<Timeline> getAllTimelines() {
         return timelineRepository.findAll();
     }

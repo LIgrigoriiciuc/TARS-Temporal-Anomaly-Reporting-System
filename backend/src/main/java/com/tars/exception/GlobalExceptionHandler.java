@@ -31,17 +31,6 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    // BadCredentialsException — Spring Security throws this when email/password is wrong
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 401,
-                "message", "Invalid credentials"
-        ));
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
@@ -66,15 +55,5 @@ public class GlobalExceptionHandler {
                 "errors", errors
         ));
 
-    }
-    //LockedException — Spring Security throws this when isAccountNonLocked() returns false
-    @ExceptionHandler(LockedException.class)
-    public ResponseEntity<Map<String, Object>> handleLocked(LockedException ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 403,
-                "message", "Account is inactive"
-        ));
     }
 }

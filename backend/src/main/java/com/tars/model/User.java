@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 @Inheritance(strategy = InheritanceType.JOINED)
 //dtype in users tells Hibernate what kind of object to create
 @DiscriminatorColumn(name = "dtype", discriminatorType = DiscriminatorType.STRING)
-@Data //generates getters/setters/equals/hashCode/toString
+@Data
 @NoArgsConstructor
-@AllArgsConstructor //constructors generated automatically
+@AllArgsConstructor
 public abstract class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //generated automatically by db
@@ -31,6 +31,6 @@ public abstract class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private UserStatus status = UserStatus.ACTIVE; //creating in-memory
+    private UserStatus status = UserStatus.ACTIVE;
 
 }
