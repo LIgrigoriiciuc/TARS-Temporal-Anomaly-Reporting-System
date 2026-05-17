@@ -1,7 +1,7 @@
 package com.tars.controller;
 
 import com.tars.model.User;
-import com.tars.model.dto.UserRegistrationDTO;
+import com.tars.model.dto.UserRequestDTO;
 import com.tars.model.dto.UserResponseDTO;
 import com.tars.model.mappers.UserMapper;
 import com.tars.service.AdminService;
@@ -40,7 +40,7 @@ public class AdminController {
 
     // UC-03: Create user account
     @PostMapping("/users")
-    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRegistrationDTO dto) {
+    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRequestDTO dto) {
         User user = UserMapper.toEntity(dto);                          // map request DTO → entity
         User saved = adminService.createUser(user, dto.getPassword(), dto.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(UserMapper.toDto(saved)); // map entity → response

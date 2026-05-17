@@ -3,7 +3,7 @@ package com.tars.model.mappers;
 import com.tars.model.Agent;
 import com.tars.model.Supervisor;
 import com.tars.model.User;
-import com.tars.model.dto.UserRegistrationDTO;
+import com.tars.model.dto.UserRequestDTO;
 import com.tars.model.dto.UserResponseDTO;
 
 public class UserMapper {
@@ -20,7 +20,7 @@ public class UserMapper {
         return dto;
     }
 
-    public static User toEntity(UserRegistrationDTO dto) {
+    public static User toEntity(UserRequestDTO dto) {
         if (dto == null) return null;
 
         User user = "SUPERVISOR".equalsIgnoreCase(dto.getRole()) ? new Supervisor() : new Agent();

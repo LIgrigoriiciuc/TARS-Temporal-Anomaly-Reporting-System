@@ -1,5 +1,6 @@
 package com.tars.model.dto;
 
+import jakarta.validation.constraints.Max;
 import lombok.Data;
 
 /**
@@ -8,6 +9,7 @@ import lombok.Data;
  */
 @Data
 public class DraftRequestDTO {
+    @Max(1000)
     private String description;
     private Integer year;
     private String keywords;

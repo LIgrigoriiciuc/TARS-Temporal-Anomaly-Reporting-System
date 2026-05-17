@@ -8,30 +8,29 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 /**
- * Plain servlet filter — runs on every HTTP request.
- * doFilter called automatically?
- * Yes — Tomcat (the servlet container embedded in Spring Boot) calls it.
- * Your JwtFilter is registered as a @Component so Spring registers it in Tomcat automatically.
+ * plain servlet filter runs on every HTTP request.
  */
+@Order(2)
 @Component
 @RequiredArgsConstructor
 public class JwtFilter implements Filter {
-
     private final JwtUtils jwtUtils;
     private final TokenDenylistService tokenDenylistService;
     private final UserRepository userRepository;
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
+        // casting for web features
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
         String path = request.getServletPath();
-        // Public endpoints — no token required
+        // Public endpoints, no token required
         if (isPublic(path)) {
             chain.doFilter(req, res);
             return;
@@ -42,7 +41,7 @@ public class JwtFilter implements Filter {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid token");
             return;
         }
-        // Check token denylist — covers logout
+        // Check token denylist, covers logout
         if (tokenDenylistService.isTokenBlacklisted(jwt)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token invalidated");
             return;
@@ -54,8 +53,7 @@ public class JwtFilter implements Filter {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User not found");
             return;
         }
-        // Check user denylist — covers account deactivation while logged in
-        //The filter doesn't know about Angular routing. It just says "401". Angular decides what to do with it.
+        // Check user denylist, covers account deactivation while logged in
         if (tokenDenylistService.isUserBlacklisted(user.getId())) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account deactivated");
             return;
@@ -71,7 +69,7 @@ public class JwtFilter implements Filter {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Agent access required");
             return;
         }
-        // Attach user to request — controllers retrieve via request.getAttribute("currentUser")
+        //Attach user to request, controllers retrieve via request.getAttribute("currentUser")
         request.setAttribute("currentUser", user);
         chain.doFilter(req, res);
     }

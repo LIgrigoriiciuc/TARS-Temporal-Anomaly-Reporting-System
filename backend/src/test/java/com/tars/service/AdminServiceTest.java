@@ -3,8 +3,9 @@ package com.tars.service;
 import com.tars.model.Agent;
 import com.tars.model.Supervisor;
 import com.tars.model.User;
-import com.tars.model.dto.UserRegistrationDTO;
 import com.tars.model.enums.UserStatus;
+import com.tars.repository.AgentRepository;
+import com.tars.repository.SupervisorRepository;
 import com.tars.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,42 +23,38 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdminServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Mock
-    private JavaMailSender mailSender;
+    @Mock private UserRepository userRepository;
+    @Mock private AgentRepository agentRepository;
+    @Mock private SupervisorRepository supervisorRepository;
+    @Mock private BCryptPasswordEncoder passwordEncoder;
+    @Mock private JavaMailSender mailSender;
+    @Mock private TokenDenylistService tokenDenylistService;
+    @Mock private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private AdminService adminService;
 
-    private UserRegistrationDTO agentDTO;
-    private UserRegistrationDTO supervisorDTO;
+    private Agent agentEntity;
+    private Supervisor supervisorEntity;
 
     @BeforeEach
     void setUp() {
-        agentDTO = new UserRegistrationDTO();
-        agentDTO.setName("Test Agent");
-        agentDTO.setEmail("agent@tars.com");
-        agentDTO.setPassword("password123");
-        agentDTO.setRole("AGENT");
+        agentEntity = new Agent();
+        agentEntity.setName("Test Agent");
+        agentEntity.setEmail("agent@tars.com");
 
-        supervisorDTO = new UserRegistrationDTO();
-        supervisorDTO.setName("Test Supervisor");
-        supervisorDTO.setEmail("supervisor@tars.com");
-        supervisorDTO.setPassword("password123");
-        supervisorDTO.setRole("SUPERVISOR");
+        supervisorEntity = new Supervisor();
+        supervisorEntity.setName("Test Supervisor");
+        supervisorEntity.setEmail("supervisor@tars.com");
     }
 
-    // UC-03: Create user — happy path
+    // UC-03: Create agent — happy path
     @Test
     void createUser_Agent_Success() {
         when(userRepository.existsByEmail("agent@tars.com")).thenReturn(false);
@@ -64,7 +62,7 @@ class AdminServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
         doNothing().when(mailSender).send(any(SimpleMailMessage.class));
 
-        User result = adminService.createUser(agentDTO);
+        User result = adminService.createUser(agentEntity, "password123", "agent@tars.com");
 
         assertNotNull(result);
         assertInstanceOf(Agent.class, result);
@@ -74,6 +72,7 @@ class AdminServiceTest {
         verify(userRepository).save(any(User.class));
     }
 
+    // UC-03: Create supervisor — happy path
     @Test
     void createUser_Supervisor_Success() {
         when(userRepository.existsByEmail("supervisor@tars.com")).thenReturn(false);
@@ -81,18 +80,18 @@ class AdminServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
         doNothing().when(mailSender).send(any(SimpleMailMessage.class));
 
-        User result = adminService.createUser(supervisorDTO);
+        User result = adminService.createUser(supervisorEntity, "password123", "supervisor@tars.com");
 
         assertInstanceOf(Supervisor.class, result);
     }
 
-    // UC-03 A1: Duplicate email
+    // UC-03 A1: Duplicate email — throws 409 Conflict
     @Test
     void createUser_DuplicateEmail_ThrowsConflict() {
         when(userRepository.existsByEmail("agent@tars.com")).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> adminService.createUser(agentDTO));
+                () -> adminService.createUser(agentEntity, "password123", "agent@tars.com"));
 
         assertEquals(409, ex.getStatusCode().value());
         verify(userRepository, never()).save(any());
@@ -107,14 +106,18 @@ class AdminServiceTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        doNothing().when(tokenDenylistService).blacklistUser(2L);
+        doNothing().when(messagingTemplate).convertAndSend(anyString(), (Object) any());
 
         adminService.deactivateUser(2L, 1L);
 
         assertEquals(UserStatus.INACTIVE, target.getStatus());
         verify(userRepository).save(target);
+        verify(tokenDenylistService).blacklistUser(2L);
+        verify(messagingTemplate).convertAndSend(anyString(), (Object) any());
     }
 
-    // UC-04 E1: Supervisor cannot deactivate own account
+    // UC-04 E1: Supervisor cannot deactivate own account — throws 403
     @Test
     void deactivateUser_OwnAccount_ThrowsForbidden() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -124,7 +127,7 @@ class AdminServiceTest {
         verify(userRepository, never()).findById(any());
     }
 
-    // UC-04: Target not found
+    // UC-04: Target not found — throws 404
     @Test
     void deactivateUser_NotFound_ThrowsNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
@@ -135,7 +138,7 @@ class AdminServiceTest {
         assertEquals(404, ex.getStatusCode().value());
     }
 
-    // UC-04 PRE-3: Already inactive
+    // UC-04 PRE-3: Already inactive — throws 400
     @Test
     void deactivateUser_AlreadyInactive_ThrowsBadRequest() {
         Agent target = new Agent();
@@ -150,7 +153,7 @@ class AdminServiceTest {
         assertEquals(400, ex.getStatusCode().value());
     }
 
-    // UC-03 E1: SMTP down — account still created
+    // UC-03 E1: SMTP down — account still created, no exception thrown
     @Test
     void createUser_SmtpDown_AccountStillCreated() {
         when(userRepository.existsByEmail("agent@tars.com")).thenReturn(false);
@@ -158,8 +161,8 @@ class AdminServiceTest {
         when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         doThrow(new RuntimeException("SMTP unavailable")).when(mailSender).send(any(SimpleMailMessage.class));
 
-        // Should NOT throw — UC-03 E1 says account is created even if mail fails
-        User result = assertDoesNotThrow(() -> adminService.createUser(agentDTO));
+        User result = assertDoesNotThrow(
+                () -> adminService.createUser(agentEntity, "password123", "agent@tars.com"));
         assertNotNull(result);
     }
 }
