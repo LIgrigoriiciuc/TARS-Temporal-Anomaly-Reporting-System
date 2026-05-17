@@ -4,9 +4,6 @@ import {inject} from '@angular/core';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: 'supervisor', loadComponent: () => import('./features/supervisor/dashboard/dashboard').then(m => m.Dashboard), canActivate: [authGuard] },
-  { path: 'agent', loadComponent: () => import('./features/agent/dashboard/dashboard').then(m => m.Dashboard), canActivate: [authGuard] },
-  { path: '**', redirectTo: 'login' },
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login').then(m => m.Login),
@@ -16,6 +13,9 @@ export const routes: Routes = [
       if (role === 'Agent') { inject(Router).navigate(['/agent']); return false; }
       return true;
     }]
-  }
+  },
+  { path: 'supervisor', loadComponent: () => import('./features/supervisor/dashboard/dashboard').then(m => m.Dashboard), canActivate: [authGuard] },
+  { path: 'agent', loadComponent: () => import('./features/agent/dashboard/dashboard').then(m => m.Dashboard), canActivate: [authGuard] },
+  { path: '**', redirectTo: 'login' }, // 👈 întotdeauna ultimul
 ];
 

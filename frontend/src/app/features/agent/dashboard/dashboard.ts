@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth';
@@ -11,30 +11,31 @@ import { WebSocketService } from '../../../core/services/websocket';
   imports: [CommonModule, FormsModule],
   templateUrl: './dashboard.html'
 })
-export class Dashboard implements OnInit {
-  drafts: any[] = [];
-  timelines: any[] = [];
+export class Dashboard implements OnInit, OnDestroy {
+  drafts = signal<any[]>([]);
+  timelines = signal<any[]>([]);
+  draftError = signal('');
+  accountTerminated = signal(false);
   email = localStorage.getItem('email') || '';
   selectedDraftId: number | null = null;
-  accountTerminated = false;
   draft = { description: '', year: null as number | null, keywords: '', timelineId: null as number | null };
+  private pollingInterval: any = null;
 
   constructor(
     private authService: AuthService,
     private draftService: DraftService,
-    private cdr: ChangeDetectorRef,
     private wsService: WebSocketService
   ) {}
 
   ngOnInit() {
     this.loadDrafts();
     this.loadTimelines();
+    this.pollingInterval = setInterval(() => this.loadDrafts(), 5000);
 
     const userId = localStorage.getItem('userId');
     if (userId) {
-      this.wsService.connect((msg) => {
-        this.accountTerminated = true;
-        this.cdr.detectChanges();
+      this.wsService.connect(() => {
+        this.accountTerminated.set(true);
         setTimeout(() => {
           localStorage.clear();
           this.wsService.disconnect();
@@ -44,17 +45,22 @@ export class Dashboard implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+    clearInterval(this.pollingInterval);
+  }
+
   loadDrafts() {
     this.draftService.getDrafts().subscribe({
       next: (data) => {
-        this.drafts = data;
-        this.cdr.detectChanges();
+        const incoming = JSON.stringify(data);
+        const current = JSON.stringify(this.drafts());
+        if (incoming !== current) {
+          this.drafts.set(data);
+        }
       },
       error: (err) => {
-        console.log('Draft error status:', err.status);
         if (err.status === 401 || err.status === 403) {
-          this.accountTerminated = true;
-          this.cdr.detectChanges();
+          this.accountTerminated.set(true);
           setTimeout(() => {
             localStorage.clear();
             this.wsService.disconnect();
@@ -64,14 +70,13 @@ export class Dashboard implements OnInit {
             });
           }, 3000);
         }
-      },
-      complete: () => {}
+      }
     });
   }
 
   loadTimelines() {
     this.draftService.getTimelines().subscribe({
-      next: (data) => { this.timelines = data; }
+      next: (data) => this.timelines.set(data)
     });
   }
 
@@ -84,23 +89,23 @@ export class Dashboard implements OnInit {
     };
 
     if (!payload.description && !payload.year && !payload.keywords) {
+      this.draftError.set('At least one field must be filled');
       return;
     }
+    this.draftError.set('');
 
     if (this.selectedDraftId) {
       this.draftService.updateDraft(this.selectedDraftId, payload).subscribe({
-        next: (updated) => {
-          this.drafts = this.drafts.map(d => d.id === this.selectedDraftId ? updated : d);
+        next: () => {
           this.clearSelection();
-          this.cdr.detectChanges();
+          this.loadDrafts();
         }
       });
     } else {
       this.draftService.saveDraft(payload).subscribe({
-        next: (saved) => {
-          this.drafts = [...this.drafts, saved];
+        next: () => {
           this.clearSelection();
-          this.cdr.detectChanges();
+          this.loadDrafts();
         }
       });
     }
@@ -114,26 +119,24 @@ export class Dashboard implements OnInit {
       keywords: d.keywords || '',
       timelineId: d.timelineId
     };
-    this.cdr.detectChanges();
   }
 
   clearSelection() {
     this.selectedDraftId = null;
     this.draft = { description: '', year: null, keywords: '', timelineId: null };
-    this.cdr.detectChanges();
   }
 
   deleteDraft(id: number) {
     this.draftService.deleteDraft(id).subscribe({
       next: () => {
-        this.drafts = this.drafts.filter(d => d.id !== id);
         if (this.selectedDraftId === id) this.clearSelection();
-        this.cdr.detectChanges();
+        this.loadDrafts();
       }
     });
   }
 
   logout() {
+    clearInterval(this.pollingInterval);
     this.wsService.disconnect();
     this.authService.logout().subscribe();
   }

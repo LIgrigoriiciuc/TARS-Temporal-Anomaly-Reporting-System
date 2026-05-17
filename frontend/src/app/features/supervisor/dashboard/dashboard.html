@@ -1,196 +1,153 @@
-<div class="crt-overlay"></div>
-<div class="pixel-grid"></div>
-
-<!-- Metadata Corners -->
-<div class="fixed top-1 left-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
-  AUTH: LEVEL 4 // STABLE_KERNEL_V4.2
-</div>
-<div class="fixed top-1 right-2 z-[60] text-[9px] text-primary/80 font-bold pointer-events-none uppercase tracking-tighter">
-  MODE: OVERRIDE_ENABLED // {{ currentTime }}
-</div>
+<!-- SUPERVISOR DASHBOARD -->
 
 <!-- Top Navigation -->
 <header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
+  <span class="text-base font-black tracking-tight uppercase">TARS | SUPERVISOR_PANEL</span>
   <div class="flex items-center gap-4">
-    <div class="beveled-outset p-1 bg-sky-600 text-white">
-      <span class="material-symbols-outlined text-lg">terminal</span>
-    </div>
-    <span class="text-base font-black tracking-tight uppercase">TARS <span class="font-normal opacity-50 px-1">|</span> TEMPORAL_ANOMALY_REPORTING_SYSTEM</span>
-  </div>
-  <div class="flex items-center gap-6">
-    <div class="text-[9px] opacity-80 flex flex-col items-end leading-none font-bold font-mono">
-      <span>LINK: OK</span>
-      <span>{{ currentTime }}</span>
-    </div>
-    <button (click)="logout()" class="button-90s">
-      <span class="material-symbols-outlined text-xs">power_settings_new</span>
-      <span>SEVER_CONNECTION</span>
-    </button>
+    <span class="text-[9px] font-bold font-mono opacity-70">{{ currentTime() }}</span>
+    <button (click)="logout()" class="button-90s">SEVER_CONNECTION</button>
   </div>
 </header>
 
-<div class="flex min-h-[calc(100vh-48px)]">
-  <!-- Sidebar Navigation -->
-  <aside class="w-12 md:w-56 bg-[#d1d5db] border-r-2 border-white shadow-[2px_0_0_#4b5563] flex flex-col">
-    <nav class="flex-1 px-3 py-6 space-y-8">
-      <div>
-        <span class="text-[10px] font-bold text-gray-600 block mb-3 px-2 border-b border-gray-400">CORE_SYSTEMS</span>
-        <ul class="space-y-1">
-          <li class="beveled-inset bg-white text-primary px-3 py-2 flex items-center gap-3 cursor-pointer">
-            <span class="material-symbols-outlined text-lg">supervisor_account</span>
-            <span class="hidden md:inline font-bold text-xs uppercase">Personnel Registry</span>
-          </li>
-          <li class="hover:bg-gray-300 px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors">
-            <span class="material-symbols-outlined text-lg text-gray-500">folder_special</span>
-            <span class="hidden md:inline font-bold text-xs uppercase text-gray-600">Anomaly Logs</span>
-          </li>
-          <li class="hover:bg-gray-300 px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors">
-            <span class="material-symbols-outlined text-lg text-gray-500">verified_user</span>
-            <span class="hidden md:inline font-bold text-xs uppercase text-gray-600">Security Nodes</span>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <span class="text-[10px] font-bold text-gray-600 block mb-3 px-2 border-b border-gray-400">ANALYTICS</span>
-        <ul class="space-y-1">
-          <li class="hover:bg-gray-300 px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors">
-            <span class="material-symbols-outlined text-lg text-gray-500">insights</span>
-            <span class="hidden md:inline font-bold text-xs uppercase text-gray-600">Temporal Drift</span>
-          </li>
-        </ul>
-      </div>
-    </nav>
-  </aside>
+<main class="max-w-[1000px] mx-auto p-6 mb-12">
 
-  <!-- Main Content -->
-  <main class="flex-1 p-6 mb-12 overflow-y-auto">
-    <!-- Breadcrumb -->
-    <div class="mb-6 flex items-center gap-1 text-[9px] text-primary/60 font-bold uppercase">
-      <span class="hover:underline cursor-pointer">ROOT</span>
-      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
-      <span class="hover:underline cursor-pointer">SYS_OPS</span>
-      <span class="material-symbols-outlined text-[10px]">chevron_right</span>
-      <span class="text-primary font-black bg-white/40 px-1">SUPERVISOR_DASHBOARD</span>
-    </div>
-
-    <!-- Page Header -->
-    <div class="flex justify-between items-start mb-8 border-b-2 border-primary/20 pb-4">
-      <div>
-        <h1 class="text-4xl font-black text-primary uppercase tracking-tighter mb-1">Personnel_Registry</h1>
-        <div class="flex items-center gap-3">
-          <span class="beveled-inset bg-yellow-100 text-[9px] font-bold px-2 py-0.5 text-yellow-800">LVL 4-SIGMA</span>
-          <span class="text-[10px] text-primary/60 font-bold uppercase">Status: <span class="text-green-600">LINK_OK</span></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Create User Form -->
-    <div class="beveled-outset p-5 mb-6">
-      <div class="bg-gray-400/20 px-2 py-0.5 mb-4 border-b border-gray-400 flex items-center gap-2">
-        <span class="material-symbols-outlined text-sm text-primary/70">person_add</span>
-        <span class="text-[10px] font-black text-primary/70 uppercase">New_Personnel_Entry</span>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">NAME</label>
-          <div class="beveled-inset">
-            <input [(ngModel)]="newUser.name" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none" type="text"/>
-          </div>
-        </div>
-        <div>
-          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">EMAIL_IDENTITY</label>
-          <div class="beveled-inset">
-            <input [(ngModel)]="newUser.email" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none" type="text"/>
-          </div>
-        </div>
-        <div>
-          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">ACCESS_KEY</label>
-          <div class="beveled-inset">
-            <input [(ngModel)]="newUser.password" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none" type="password"/>
-          </div>
-        </div>
-        <div>
-          <label class="text-[10px] font-black text-primary/60 uppercase tracking-widest block mb-1">ROLE_CLEARANCE</label>
-          <div class="beveled-inset">
-            <select [(ngModel)]="newUser.role" class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none">
-              <option value="AGENT">AGENT</option>
-              <option value="SUPERVISOR">SUPERVISOR</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-3">
-        <button (click)="createUser()" class="button-90s-primary px-6 py-1.5">
-          <span class="material-symbols-outlined text-sm">person_add</span>
-          <span>ENLIST</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Manifest Table -->
-    <div class="beveled-outset overflow-hidden">
-      <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
-        <span class="text-xs font-black text-primary uppercase">Enlisted Entities Manifest</span>
-        <div class="flex gap-1">
-          <div class="w-4 h-4 beveled-inset bg-gray-200"></div>
-          <div class="w-4 h-4 beveled-outset bg-gray-200"></div>
-        </div>
-      </div>
-      <div class="overflow-x-auto bg-white">
-        <table class="w-full text-xs text-left border-collapse table-90s">
-          <thead>
-          <tr class="text-[10px] uppercase">
-            <th class="px-4 py-2">ID_String</th>
-            <th class="px-4 py-2">Email_Identity</th>
-            <th class="px-4 py-2">Role_Clearance</th>
-            <th class="px-4 py-2">Status_State</th>
-            <th class="px-4 py-2 text-right">System_Actions</th>
-          </tr>
-          </thead>
-          <tbody class="bg-gray-50">
-            @for (user of users; track user.id) {
-              <tr class="manifest-row">
-                <td class="px-4 py-2 font-bold font-mono">#{{ user.id }}</td>
-                <td class="px-4 py-2 text-primary/80">{{ user.email }}</td>
-                <td class="px-4 py-2">
-                  <span class="beveled-inset bg-white px-2 py-0.5 text-[9px] font-bold">{{ user.role }}</span>
-                </td>
-                <td class="px-4 py-2">
-                  @if (user.status === 'ACTIVE') {
-                    <span class="flex items-center gap-1 font-bold text-[10px]">
-                      <span class="w-2 h-2 bg-green-500 border border-green-800"></span> ACTIVE
-                    </span>
-                  } @else {
-                    <span class="flex items-center gap-1 font-bold text-[10px] opacity-50">
-                      <span class="w-2 h-2 bg-gray-400 border border-gray-600"></span> INACTIVE
-                    </span>
-                  }
-                </td>
-                <td class="px-4 py-2 text-right">
-                  @if (user.status === 'ACTIVE') {
-                    <button (click)="deactivateUser(user.id)" class="button-90s text-[9px]">TERMINATE_ACCESS</button>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <div class="bg-gray-300 px-4 py-1 border-t border-gray-400 text-[9px] font-bold text-primary/60 uppercase flex justify-between">
-        <span>PAGE_ID: 01 // RECORDS: {{ users.length }}</span>
-        <span>READY</span>
-      </div>
-    </div>
-  </main>
-</div>
-
-<footer class="fixed bottom-0 left-0 w-full h-10 flex justify-between items-center px-4 z-50 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary">
-  <div class="flex items-center gap-6">
-    <div class="flex items-center gap-2">
-      <span class="w-3 h-3 bg-green-500 border border-green-900 status-blink"></span>
-      <span>SYSTEM: ONLINE</span>
-    </div>
-    <span class="opacity-50">UTC SYNC: ACTIVE</span>
-    <span class="opacity-50">BUILD_94.08.12</span>
+  <!-- Page title -->
+  <div class="mb-6 border-b-2 border-primary/20 pb-4">
+    <h1 class="text-4xl font-black uppercase tracking-tighter">Personnel_Registry</h1>
+    <p class="text-[10px] text-primary/60 font-bold uppercase mt-1">
+      Status: <span class="text-green-600">LINK_OK</span> // RECORDS: {{ users().length }}
+    </p>
   </div>
+
+  <!-- Create User Form -->
+  <div class="beveled-outset p-5 mb-6">
+
+    <div class="border-b border-gray-400 mb-4 pb-1">
+      <span class="text-[10px] font-black uppercase">New_Personnel_Entry</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+      <div>
+        <label class="text-[10px] font-black uppercase tracking-widest block mb-1">NAME</label>
+        <div class="beveled-inset">
+          <input [(ngModel)]="newUser.name" type="text"
+                 class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-black uppercase tracking-widest block mb-1">EMAIL</label>
+        <div class="beveled-inset">
+          <input [(ngModel)]="newUser.email" type="text"
+                 class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-black uppercase tracking-widest block mb-1">ACCESS_KEY</label>
+        <div class="beveled-inset">
+          <input [(ngModel)]="newUser.password" type="password"
+                 class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-black uppercase tracking-widest block mb-1">ROLE</label>
+        <div class="beveled-inset">
+          <select [(ngModel)]="newUser.role"
+                  class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none">
+            <option value="AGENT">AGENT</option>
+            <option value="SUPERVISOR">SUPERVISOR</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    @if (createError()) {
+      <div class="beveled-inset bg-red-100 px-2 py-1 mb-3">
+        <p class="text-red-800 text-[10px] font-bold font-mono">! ERROR: {{ createError() }}</p>
+      </div>
+    }
+
+    <button (click)="createUser()" class="button-90s-primary px-6 py-1.5">
+      ENLIST
+    </button>
+
+  </div>
+
+  <!-- Deactivate error -->
+  @if (deactivateError()) {
+    <div class="beveled-inset bg-red-100 px-2 py-1 mb-3">
+      <p class="text-red-800 text-[10px] font-bold font-mono">! ERROR: {{ deactivateError() }}</p>
+    </div>
+  }
+
+  <!-- Users Table -->
+  <div class="beveled-outset overflow-hidden">
+
+    <div class="bg-gray-300 px-4 py-2 border-b border-gray-400">
+      <span class="text-xs font-black uppercase">Enlisted Entities Manifest</span>
+    </div>
+
+    <div class="overflow-x-auto bg-white">
+      <table class="w-full text-xs text-left border-collapse table-90s">
+        <thead>
+        <tr class="text-[10px] uppercase">
+          <th class="px-4 py-2">ID</th>
+          <th class="px-4 py-2">Email</th>
+          <th class="px-4 py-2">Role</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2 text-right">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td class="px-4 py-2 font-bold font-mono">#{{ user.id }}</td>
+              <td class="px-4 py-2 text-primary/80">{{ user.email }}</td>
+              <td class="px-4 py-2">
+                <span class="beveled-inset bg-white px-2 py-0.5 text-[9px] font-bold">{{ user.role }}</span>
+              </td>
+              <td class="px-4 py-2">
+                @if (user.status === 'ACTIVE') {
+                  <span class="flex items-center gap-1 font-bold text-[10px]">
+                    <span class="w-2 h-2 bg-green-500 border border-green-800"></span> ACTIVE
+                  </span>
+                } @else {
+                  <span class="flex items-center gap-1 font-bold text-[10px] opacity-50">
+                    <span class="w-2 h-2 bg-gray-400 border border-gray-600"></span> INACTIVE
+                  </span>
+                }
+              </td>
+              <td class="px-4 py-2 text-right">
+                @if (user.status === 'ACTIVE') {
+                  <button (click)="deactivateUser(user.id)" class="button-90s text-[9px]">
+                    TERMINATE_ACCESS
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bg-gray-300 px-4 py-1 border-t border-gray-400 text-[9px] font-bold text-primary/60 uppercase">
+      RECORDS: {{ users().length }} // READY
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Status bar -->
+<footer class="fixed bottom-0 left-0 w-full h-10 flex items-center px-4 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary gap-6">
+  <span class="flex items-center gap-2">
+    <span class="w-3 h-3 bg-green-500 border border-green-900"></span>
+    SYSTEM: ONLINE
+  </span>
+  <span class="opacity-50">UTC SYNC: ACTIVE</span>
+  <span class="opacity-50">BUILD_94.08.12</span>
 </footer>

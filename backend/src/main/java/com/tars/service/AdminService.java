@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,8 +75,8 @@ public class AdminService {
         users.sort(Comparator.comparing(User::getId));
         return users;
     }
-
-    private void sendCredentialsEmail(String email, String name, String rawPassword) {
+    @Async
+    protected void sendCredentialsEmail(String email, String name, String rawPassword) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);

@@ -67,6 +67,7 @@ public class AuthService {
         cookie.setPath("/");
         //Cookie lives for 8 hours in the browser
         cookie.setMaxAge((int) (jwtUtils.getExpirationMs() / 1000));
+        cookie.setAttribute("SameSite", "Lax");
         return cookie;
     }
 

@@ -1,12 +1,10 @@
 package com.tars.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,13 +20,14 @@ public class GlobalExceptionHandler {
 
     //thrown manually in services for various reasons
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", ex.getStatusCode().value(),
-                "message", ex.getReason() != null ? ex.getReason() : "Error"
-        ));
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now().toString(),
+                        "status", ex.getStatusCode().value(),
+                        "message", ex.getReason() != null ? ex.getReason() : "Error"
+                ));
     }
 
     @ExceptionHandler(Exception.class)
@@ -49,11 +48,13 @@ public class GlobalExceptionHandler {
                 errors.put(error.getField(), error.getDefaultMessage())
         );
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 400,
-                "errors", errors
-        ));
-
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .header("Access-Control-Allow-Origin", "http://localhost:4200")
+                .header("Access-Control-Allow-Credentials", "true")
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now().toString(),
+                        "status", 400,
+                        "errors", errors
+                ));
     }
 }
