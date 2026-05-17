@@ -1,5 +1,6 @@
 package com.tars.config;
 
+import com.tars.model.Agent;
 import com.tars.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -17,7 +18,6 @@ import java.util.Date;
 public class JwtUtils {
 
     // Must be at least 512 bits for HS512.
-    // In production: inject via @Value from environment variable.
     private final String jwtSecret = "tars_multiverse_jwt_secret_key_2026_must_be_long_enough_for_hs512_algorithm_ok";
     private final int jwtExpirationMs = 28800000; // 8 hours — NFR-03
 
@@ -27,7 +27,7 @@ public class JwtUtils {
 
     // Generate token directly from User entity — no Spring Authentication wrapper needed
     public String generateJwtTokenForUser(User user) {
-        String role = user.getAuthorities().iterator().next().getAuthority();
+        String role = user instanceof Agent ? "Agent" : "Supervisor";
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("role", role)
