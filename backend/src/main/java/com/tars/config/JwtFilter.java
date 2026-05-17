@@ -1,7 +1,4 @@
 package com.tars.config;
-
-package com.tars.config;
-
 import com.tars.model.Agent;
 import com.tars.model.User;
 import com.tars.repository.UserRepository;
@@ -17,13 +14,9 @@ import java.io.IOException;
 
 /**
  * Plain servlet filter — runs on every HTTP request.
- * Replaces Spring Security's filter chain entirely.
- * Responsibilities:
- *   1. Allow public endpoints without token
- *   2. Extract and validate JWT from HttpOnly cookie
- *   3. Check Redis denylist (logout + deactivation)
- *   4. Enforce role-based access per endpoint prefix
- *   5. Attach authenticated user to request for controllers
+ * doFilter called automatically?
+ * Yes — Tomcat (the servlet container embedded in Spring Boot) calls it.
+ * Your JwtFilter is registered as a @Component so Spring registers it in Tomcat automatically.
  */
 @Component
 @RequiredArgsConstructor
@@ -35,7 +28,6 @@ public class JwtFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
-
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
         String path = request.getServletPath();
@@ -63,6 +55,7 @@ public class JwtFilter implements Filter {
             return;
         }
         // Check user denylist — covers account deactivation while logged in
+        //The filter doesn't know about Angular routing. It just says "401". Angular decides what to do with it.
         if (tokenDenylistService.isUserBlacklisted(user.getId())) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account deactivated");
             return;

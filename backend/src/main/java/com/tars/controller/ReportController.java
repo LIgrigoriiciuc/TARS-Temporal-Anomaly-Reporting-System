@@ -3,9 +3,9 @@ package com.tars.controller;
 import com.tars.model.Agent;
 import com.tars.model.ObservationReport;
 import com.tars.model.Timeline;
-import com.tars.model.dto.ReportDTO;
+import com.tars.model.dto.DraftRequestDTO;
+import com.tars.model.dto.DraftResponseDTO;
 import com.tars.model.mappers.ReportMapper;
-import com.tars.repository.TimelineRepository;
 import com.tars.service.ReportService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -16,38 +16,43 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Handles all report/draft HTTP endpoints.
+ * Responsibility: map request DTOs → entities, call service, map entities → response DTOs.
+ * No business logic here — that belongs in ReportService.
+ */
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
 public class ReportController {
 
     private final ReportService reportService;
-    private final TimelineRepository timelineRepository;
 
-    // UC-06: Save as draft
+    // UC-06: Save new draft
     @PostMapping("/drafts")
-    public ResponseEntity<ReportDTO> saveDraft(@RequestBody ReportDTO dto, HttpServletRequest request) {
-        // Get authenticated agent from request attribute set by JwtFilter
+    public ResponseEntity<DraftResponseDTO> saveDraft(@RequestBody DraftRequestDTO dto,
+                                                      HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
-        ObservationReport draft = ReportMapper.toEntity(dto);
+        ObservationReport draft = ReportMapper.toEntity(dto);         // map request → entity
         ObservationReport saved = reportService.saveAsDraft(draft, agent, dto.getTimelineId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ReportMapper.toDto(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ReportMapper.toDto(saved)); // map entity → response
     }
 
     // UC-07: View all drafts
     @GetMapping("/drafts")
-    public ResponseEntity<List<ReportDTO>> getDrafts(HttpServletRequest request) {
+    public ResponseEntity<List<DraftResponseDTO>> getDrafts(HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
-        List<ReportDTO> drafts = reportService.getAgentDrafts(agent.getId())
+        List<DraftResponseDTO> drafts = reportService.getAgentDrafts(agent.getId())
                 .stream()
-                .map(ReportMapper::toDto)
+                .map(ReportMapper::toDto)                              // map each entity → response
                 .collect(Collectors.toList());
         return ResponseEntity.ok(drafts);
     }
 
     // UC-07: Resume a specific draft
     @GetMapping("/drafts/{id}")
-    public ResponseEntity<ReportDTO> getDraft(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<DraftResponseDTO> getDraft(@PathVariable Long id,
+                                                     HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
         ObservationReport draft = reportService.getDraft(id, agent.getId());
         return ResponseEntity.ok(ReportMapper.toDto(draft));
@@ -61,28 +66,23 @@ public class ReportController {
         return ResponseEntity.noContent().build();
     }
 
-    // UC-07 update draft
+    // UC-07: Update existing draft
     @PutMapping("/drafts/{id}")
-    public ResponseEntity<ReportDTO> updateDraft(@PathVariable Long id,
-                                                 @RequestBody ReportDTO dto,
-                                                 HttpServletRequest request) {
+    public ResponseEntity<DraftResponseDTO> updateDraft(@PathVariable Long id,
+                                                        @RequestBody DraftRequestDTO dto,
+                                                        HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
-        ObservationReport existing = reportService.getDraft(id, agent.getId());
-        existing.setDescription(dto.getDescription());
-        existing.setYear(dto.getYear());
-        existing.setKeywords(dto.getKeywords());
-        if (dto.getTimelineId() != null) {
-            Timeline timeline = timelineRepository.findById(dto.getTimelineId())
-                    .orElseThrow();
-            existing.setTimeline(timeline);
-        }
-        ObservationReport saved = reportService.saveAsDraft(existing, agent, dto.getTimelineId());
-        return ResponseEntity.ok(ReportMapper.toDto(saved));
+        ObservationReport updated = reportService.updateDraft(
+                id, agent.getId(),
+                dto.getDescription(), dto.getYear(),
+                dto.getKeywords(), dto.getTimelineId()
+        );
+        return ResponseEntity.ok(ReportMapper.toDto(updated));
     }
 
-    // Get all available timelines for dropdown
+    // Available timelines for agent dropdown
     @GetMapping("/timelines")
     public ResponseEntity<List<Timeline>> getTimelines() {
-        return ResponseEntity.ok(timelineRepository.findAll());
+        return ResponseEntity.ok(reportService.getAllTimelines());
     }
 }

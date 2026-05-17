@@ -1,17 +1,16 @@
 package com.tars.model.dto;
 
-import jakarta.validation.constraints.Size;
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
+/**
+ * Response DTO — what backend returns to Angular for draft data.
+ * Includes server-generated fields: id, status, timestamp, timelineName.
+ */
 @Data
-public class ReportDTO {
+public class DraftResponseDTO {
     private Long id;
-
-    @Size(max = 2000, message = "Description too long")
     private String description;
-
     private Integer year;
     private String keywords;
     private String status;

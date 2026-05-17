@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Handles user management HTTP endpoints — UC-03, UC-04.
+ * Responsibility: map request DTOs → entities, call service, map entities → response DTOs.
+ * No business logic here — that belongs in AdminService.
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -25,25 +30,26 @@ public class AdminController {
     // Get all users — Supervisor dashboard list
     @GetMapping("/users")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-        List<UserResponseDTO> users = adminService.getAllUsers()
-                .stream()
-                .map(UserMapper::toDto)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(
+                adminService.getAllUsers()
+                        .stream()
+                        .map(UserMapper::toDto)                        // map each entity → response DTO
+                        .collect(Collectors.toList())
+        );
     }
 
     // UC-03: Create user account
     @PostMapping("/users")
     public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRegistrationDTO dto) {
-        User created = adminService.createUser(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(UserMapper.toDto(created));
+        User user = UserMapper.toEntity(dto);                          // map request DTO → entity
+        User saved = adminService.createUser(user, dto.getPassword(), dto.getEmail());
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserMapper.toDto(saved)); // map entity → response
     }
 
     // UC-04: Deactivate user account
     @PatchMapping("/users/{id}/deactivate")
     public ResponseEntity<Void> deactivateUser(@PathVariable Long id, HttpServletRequest request) {
-        // Get currently logged-in supervisor from request attribute set by JwtFilter
-        User currentUser = (User) request.getAttribute("currentUser");
+        User currentUser = (User) request.getAttribute("currentUser"); // set by JwtFilter
         adminService.deactivateUser(id, currentUser.getId());
         return ResponseEntity.ok().build();
     }

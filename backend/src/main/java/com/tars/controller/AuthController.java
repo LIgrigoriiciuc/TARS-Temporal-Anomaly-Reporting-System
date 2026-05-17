@@ -30,8 +30,7 @@ public class AuthController {
 
     // UC-01: Login
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto,
-                                                  HttpServletResponse response) {
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto, HttpServletResponse response) {
         return ResponseEntity.ok(authService.login(dto, response));
     }
 
