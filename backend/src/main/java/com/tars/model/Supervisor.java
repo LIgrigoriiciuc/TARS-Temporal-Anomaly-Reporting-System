@@ -20,8 +20,4 @@ import java.util.List;
 @NoArgsConstructor
 public class Supervisor extends User {
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("Supervisor"));
-    }
 }

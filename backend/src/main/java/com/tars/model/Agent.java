@@ -14,16 +14,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "agents")
-@DiscriminatorValue("Agent")
+@DiscriminatorValue("Agent") //tells Hibernate/db what type of object to create when reading from the database
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
+@NoArgsConstructor //without it, it can't deserialize from db
 public class Agent extends User {
 
     private Integer monthlyReportCount = 0;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("Agent"));
-    }
 }

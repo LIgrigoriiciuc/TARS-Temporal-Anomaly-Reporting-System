@@ -7,7 +7,6 @@ public class ReportMapper {
 
     public static ReportDTO toDto(ObservationReport report) {
         if (report == null) return null;
-
         ReportDTO dto = new ReportDTO();
         dto.setId(report.getId());
         dto.setDescription(report.getDescription());

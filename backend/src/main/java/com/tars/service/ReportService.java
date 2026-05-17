@@ -26,8 +26,7 @@ public class ReportService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one field must be filled");
         }
         if (timelineId != null) {
-            Timeline timeline = timelineRepository.findById(timelineId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
+            Timeline timeline = timelineRepository.findById(timelineId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
             draft.setTimeline(timeline);
         }
         draft.setAgent(agent);

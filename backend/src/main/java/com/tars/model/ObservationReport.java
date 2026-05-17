@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "observation_reports")
 @Data
-@Builder
+@Builder //for readability
 @NoArgsConstructor
 @AllArgsConstructor
 public class ObservationReport {
@@ -29,6 +29,7 @@ public class ObservationReport {
 
     @PrePersist
     protected void onCreate() {
+
         timestamp = LocalDateTime.now();
     }
 

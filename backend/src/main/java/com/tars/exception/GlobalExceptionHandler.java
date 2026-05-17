@@ -20,6 +20,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    //thrown manually in services for various reasons
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
@@ -30,7 +31,7 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    // UC-01 A1: Wrong email/password
+    // BadCredentialsException — Spring Security throws this when email/password is wrong
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
@@ -38,17 +39,6 @@ public class GlobalExceptionHandler {
                 "timestamp", LocalDateTime.now().toString(),
                 "status", 401,
                 "message", "Invalid credentials"
-        ));
-    }
-
-    // UC-04 E1: Inactive account tries to log in
-    @ExceptionHandler(DisabledException.class)
-    public ResponseEntity<Map<String, Object>> handleDisabled(DisabledException ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 403,
-                "message", "Account is inactive"
         ));
     }
 
@@ -62,6 +52,7 @@ public class GlobalExceptionHandler {
         ));
     }
     //NFR12
+    //@Valid fails
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -76,8 +67,10 @@ public class GlobalExceptionHandler {
         ));
 
     }
+    //LockedException — Spring Security throws this when isAccountNonLocked() returns false
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<Map<String, Object>> handleLocked(LockedException ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                 "timestamp", LocalDateTime.now().toString(),
                 "status", 403,

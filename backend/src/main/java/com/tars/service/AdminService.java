@@ -25,40 +25,41 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 @Service
-@RequiredArgsConstructor
+//Lombok
+//A Java annotation processor - generates boilerplate code at compile time
+@RequiredArgsConstructor //Lombok generates a constructor for all final fields. Spring uses that constructor for dependency injection
 public class AdminService {
 
     private final AgentRepository agentRepository;
     private final SupervisorRepository supervisorRepository;
-
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenDenylistService tokenDenylistService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final JavaMailSender mailSender;
     private static final Logger log = LoggerFactory.getLogger(AdminService.class);
-    // UC-04: Deactivate user
+    // UC-04
+    @Transactional
     public void deactivateUser(Long targetId, Long currentUserId) {
         if (targetId.equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot deactivate your own account");
         }
-        User user = userRepository.findById(targetId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
+        User user = userRepository.findById(targetId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         if (user.getStatus() == UserStatus.INACTIVE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is already inactive");
         }
-
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
         tokenDenylistService.blacklistUser(targetId);
-
-        // Notify via WebSocket
+        //notify via WebSocket
+        //Spring's WebSocket message sender. convertAndSend publishes a message to a topic
+        //Any Angular client subscribed to that topic receives "TERMINATED" instantly. It's the WebSocket equivalent of a REST response.
         messagingTemplate.convertAndSend("/topic/user-deactivated/" + targetId, "TERMINATED");
-
         log.info("USER_DEACTIVATED | targetId={} | by={}", targetId, currentUserId);
     }
-    private final JavaMailSender mailSender;
 
+//    Why createUser returns User?
+//    So the controller can map it to UserResponseDTO and return it to Angular immediately — Angular updates the list without needing another GET request.
     @Transactional
     public User createUser(UserRegistrationDTO dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {
@@ -69,7 +70,7 @@ public class AdminService {
         user.setStatus(UserStatus.ACTIVE);
         User saved = userRepository.save(user);
 
-        // UC-03 step 7: send credentials email
+        // UC-03,7: send credentials email
         sendCredentialsEmail(dto.getEmail(), dto.getName(), dto.getPassword());
         log.info("USER_CREATED | email={} | role={}", dto.getEmail(), dto.getRole());
         return saved;
@@ -92,8 +93,8 @@ public class AdminService {
             );
             mailSender.send(message);
         } catch (Exception e) {
-            // UC-03 E1: SMTP down — log error but don't fail account creation
-            System.err.println("CRITICAL MAIL ERROR: " + e.getMessage());
+            // UC-03 E1: SMTP down - log error but don't fail account creation
+            log.error("CRITICAL MAIL ERROR: {}", e.getMessage());
         }
     }
     public List<User> getAllUsers() {

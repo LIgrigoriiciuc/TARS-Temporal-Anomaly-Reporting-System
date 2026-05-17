@@ -9,14 +9,17 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity
 @Table(name = "users")
+//two inserts + fk to pk user table in the child table at insert
+//select with join at get
 @Inheritance(strategy = InheritanceType.JOINED)
+//dtype in users tells Hibernate what kind of object to create
 @DiscriminatorColumn(name = "dtype", discriminatorType = DiscriminatorType.STRING)
-@Data
+@Data //generates getters/setters/equals/hashCode/toString
 @NoArgsConstructor
-@AllArgsConstructor
-public abstract class User implements UserDetails {
+@AllArgsConstructor //constructors generated automatically
+public abstract class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //generated automatically by db
     private Long id;
 
     @Column(nullable = false)
@@ -29,23 +32,6 @@ public abstract class User implements UserDetails {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private UserStatus status = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.ACTIVE; //creating in-memory
 
-    // Spring Security: username is the email
-    @Override
-    public String getUsername() {
-        return email;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() { return true; }
-
-    @Override
-    public boolean isAccountNonLocked() { return status == UserStatus.ACTIVE; }
-
-    @Override
-    public boolean isCredentialsNonExpired() { return true; }
-
-    @Override
-    public boolean isEnabled() { return status == UserStatus.ACTIVE; }
 }
