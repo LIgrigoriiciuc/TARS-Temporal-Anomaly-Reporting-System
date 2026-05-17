@@ -1,3 +1,2 @@
 rootProject.name = 'TARS-Temporal-Anomaly-Reporting-System'
 include 'backend'
-include 'frontend'
