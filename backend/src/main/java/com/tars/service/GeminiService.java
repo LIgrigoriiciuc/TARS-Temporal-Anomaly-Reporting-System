@@ -10,10 +10,12 @@ import com.tars.model.enums.AnalysisStatus;
 import com.tars.model.enums.AnomalyType;
 import com.tars.model.enums.ParadoxRisk;
 import com.tars.model.enums.ReportStatus;
+import com.tars.model.mappers.ReportMapper;
 import com.tars.repository.AnomalyAnalysisRepository;
 import com.tars.repository.AnomalyRepository;
 import com.tars.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -36,6 +38,7 @@ public class GeminiService {
     private final AnomalyAnalysisRepository analysisRepository;
     private final AnomalyRepository anomalyRepository;
     private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${gemini.api.key}")
     private String apiKey;
@@ -83,6 +86,7 @@ public class GeminiService {
                 analysisRepository.save(analysis);
                 report.setStatus(ReportStatus.REJECTED);
                 reportRepository.save(report);
+                pushToAgent(report);
             }
 
         } catch (Exception e) {
@@ -90,6 +94,7 @@ public class GeminiService {
             analysis.setAnalysisStatus(AnalysisStatus.FAILED);
             analysis.setExplanation("Analysis failed due to a technical error.");
             analysisRepository.save(analysis);
+            pushToAgent(report);
         }
     }
 
@@ -170,6 +175,9 @@ public class GeminiService {
 
         analysisRepository.save(analysis);
         reportRepository.save(report);
+
+        // Push result to agent via WebSocket — no polling needed
+        pushToAgent(report);
     }
 
     /**
@@ -222,6 +230,17 @@ public class GeminiService {
             });
         }
         return ids;
+    }
+
+    private void pushToAgent(ObservationReport report) {
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/analysis/" + report.getAgent().getId(),
+                    ReportMapper.toSubmittedDto(report)
+            );
+        } catch (Exception e) {
+            log.warn("GeminiService: WebSocket push failed for report {}: {}", report.getId(), e.getMessage());
+        }
     }
 
     private Set<Long> parseIdSet(String csv) {
