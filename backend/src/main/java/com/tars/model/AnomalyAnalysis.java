@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "report")
+@ToString(exclude = {"report", "anomaly"})
 public class AnomalyAnalysis {
 
     @Id
@@ -30,16 +30,28 @@ public class AnomalyAnalysis {
     @Enumerated(EnumType.STRING)
     private AnalysisStatus analysisStatus;
 
-    // true = anomaly confirmed, Anomaly record created; false = nothing found
     private Boolean confirmed;
 
-    // Raw Gemini explanation — what it found or why it found nothing
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
-    // IDs of reports we selected from DB and sent to Gemini as context (our query result)
+    // IDs we pulled from DB and sent to Gemini as context — our selection
     @Column(columnDefinition = "TEXT")
     private String correlatedReportIds;
+
+    // IDs Gemini picked as directly causing/defining the anomaly — Gemini's selection
+    // Excludes the current report's own ID
+    @Column(columnDefinition = "TEXT")
+    private String contributingReportIds;
+
+    /**
+     * Null if confirmed=false.
+     * Set to an existing Anomaly if 75% overlap detected,
+     * or to a newly created Anomaly if confirmed=true and no overlap.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "anomaly_id", nullable = true)
+    private Anomaly anomaly;
 
     private LocalDateTime analyzedAt;
 
