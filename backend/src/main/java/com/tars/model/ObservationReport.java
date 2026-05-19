@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "observation_reports")
 @Data
-@Builder //for readability
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ObservationReport {
@@ -29,7 +29,6 @@ public class ObservationReport {
 
     @PrePersist
     protected void onCreate() {
-
         timestamp = LocalDateTime.now();
     }
 
@@ -43,4 +42,9 @@ public class ObservationReport {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "timeline_id")
     private Timeline timeline;
+
+    // Nullable — populated after Gemini analysis completes
+    // mappedBy means AnomalyAnalysis owns the FK, not this side
+    @OneToOne(mappedBy = "report", fetch = FetchType.LAZY, optional = true)
+    private AnomalyAnalysis analysis;
 }
