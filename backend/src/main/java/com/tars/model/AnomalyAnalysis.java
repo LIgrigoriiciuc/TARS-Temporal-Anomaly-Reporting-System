@@ -37,8 +37,7 @@ public class AnomalyAnalysis {
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
-    // Internal only — all report IDs Gemini considered related, never sent to agent
-    // Comma-separated e.g. "12,45,78"
+    // IDs of reports we selected from DB and sent to Gemini as context (our query result)
     @Column(columnDefinition = "TEXT")
     private String correlatedReportIds;
 
