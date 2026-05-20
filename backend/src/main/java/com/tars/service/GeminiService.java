@@ -10,6 +10,7 @@ import com.tars.model.enums.AnomalyType;
 import com.tars.model.enums.ParadoxRisk;
 import com.tars.model.enums.ReportStatus;
 import com.tars.model.mappers.ReportMapper;
+import com.tars.service.AlertService;
 import com.tars.repository.AnomalyAnalysisRepository;
 import com.tars.repository.AnomalyRepository;
 import com.tars.repository.ReportRepository;
@@ -35,6 +36,7 @@ public class GeminiService {
     private final AnomalyRepository anomalyRepository;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AlertService alertService;
     private final GeminiHttpClient geminiHttpClient;
 
     private static final int YEAR_WINDOW = 50;
@@ -135,6 +137,7 @@ public class GeminiService {
                         anomaly.setVerified(true);
                         anomalyRepository.save(anomaly);
                         log.info("GeminiService: anomaly {} corroborated and verified", anomaly.getId());
+                        alertService.triggerIfCritical(anomaly);
                     }
                 }
             } else {
@@ -153,6 +156,7 @@ public class GeminiService {
                 anomalyRepository.save(newAnomaly);
                 analysis.setAnomaly(newAnomaly);
                 log.info("GeminiService: new unverified anomaly created for report {}", report.getId());
+                alertService.triggerIfCritical(newAnomaly);
             }
 
             report.setStatus(ReportStatus.CONFIRMED);
@@ -190,14 +194,11 @@ public class GeminiService {
     private Anomaly findOverlappingAnomaly(Set<Long> newContributing, Long timelineId) {
         if (newContributing.isEmpty()) return null;
 
-        // Check unverified first — they need corroboration more urgently
-        List<Anomaly> candidates = new ArrayList<>(
-                anomalyRepository.findByTimelineIdAndVerifiedFalse(timelineId)
-        );
-        // Then verified ones — a new report might still relate to them
-        candidates.addAll(anomalyRepository.findByTimelineId(timelineId).stream()
-                .filter(Anomaly::isVerified)
-                .toList());
+        // Unverified first (need corroboration more urgently), then verified
+        List<Anomaly> all = anomalyRepository.findByTimelineId(timelineId);
+        List<Anomaly> candidates = new ArrayList<>();
+        all.stream().filter(a -> !a.isVerified()).forEach(candidates::add);
+        all.stream().filter(Anomaly::isVerified).forEach(candidates::add);
 
         for (Anomaly candidate : candidates) {
             Set<Long> existingPool = parseIdSet(candidate.getContributingReportIds());
