@@ -73,6 +73,7 @@ public class JwtFilter implements Filter {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Agent access required");
             return;
         }
+        // /api/graph/ is accessible to both Agent and Supervisor — no role check needed
         //Attach user to request, controllers retrieve via request.getAttribute("currentUser")
         request.setAttribute("currentUser", user);
         chain.doFilter(req, res);

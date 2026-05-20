@@ -21,10 +21,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,12 +35,7 @@ public class GeminiService {
     private final AnomalyRepository anomalyRepository;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
-
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    @Value("${gemini.api.url}")
-    private String apiUrl;
+    private final GeminiHttpClient geminiHttpClient;
 
     private static final int YEAR_WINDOW = 50;
     private static final double OVERLAP_THRESHOLD = 0.75;
@@ -68,10 +60,13 @@ public class GeminiService {
             String prompt = buildPrompt(report, historicalReports);
             String rawResponse = callGemini(prompt);
 
+            log.info("GeminiService: raw response for report {}: {}", reportId, rawResponse);
             JsonNode parsed = parseGeminiResponse(rawResponse);
             if (parsed == null) {
                 log.warn("GeminiService: first parse failed for report {}, retrying", reportId);
-                parsed = parseGeminiResponse(callGemini(buildStrictPrompt(report, historicalReports)));
+                String retryResponse = callGemini(buildStrictPrompt(report, historicalReports));
+                log.info("GeminiService: retry response for report {}: {}", reportId, retryResponse);
+                parsed = parseGeminiResponse(retryResponse);
             }
 
             if (parsed != null) {
@@ -302,41 +297,19 @@ public class GeminiService {
     }
 
     private String callGemini(String prompt) throws Exception {
-        String requestBody = """
-                {
-                  "contents": [{
-                    "parts": [{"text": %s}]
-                  }]
-                }
-                """.formatted(objectMapper.writeValueAsString(prompt));
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(apiUrl + "?key=" + apiKey))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() == 429 || response.statusCode() == 403) {
-            throw new RuntimeException("Gemini API quota exceeded or unauthorized: " + response.statusCode());
-        }
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("Gemini API error: " + response.statusCode());
-        }
-
-        JsonNode root = objectMapper.readTree(response.body());
-        return root.at("/candidates/0/content/parts/0/text").asText();
+        return geminiHttpClient.call(prompt);
     }
 
     private JsonNode parseGeminiResponse(String rawText) {
         try {
-            String cleaned = rawText.trim()
-                    .replaceAll("(?s)^```json", "")
-                    .replaceAll("(?s)^```", "")
-                    .replaceAll("```$", "")
-                    .trim();
+            String cleaned = rawText.trim();
+            // Strip ```json or ``` fences Gemini adds despite instructions
+            if (cleaned.startsWith("```")) {
+                cleaned = cleaned.replaceFirst("```json\s*", "").replaceFirst("```\s*", "");
+            }
+            if (cleaned.endsWith("```")) {
+                cleaned = cleaned.substring(0, cleaned.lastIndexOf("```")).trim();
+            }
             return objectMapper.readTree(cleaned);
         } catch (Exception e) {
             log.warn("GeminiService: JSON parse failed: {}", e.getMessage());

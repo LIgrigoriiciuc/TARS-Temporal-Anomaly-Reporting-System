@@ -5,6 +5,7 @@ import com.tars.model.ObservationReport;
 import com.tars.model.Timeline;
 import com.tars.model.enums.ReportStatus;
 import com.tars.repository.ReportRepository;
+import com.tars.repository.AnomalyAnalysisRepository;
 import com.tars.repository.TimelineRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,12 @@ class ReportServiceTest {
     @Mock
     private TimelineRepository timelineRepository;
 
+    @Mock
+    private AnomalyAnalysisRepository analysisRepository;
+
+    @Mock
+    private GeminiService geminiService;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -40,7 +47,7 @@ class ReportServiceTest {
     @BeforeEach
     void setUp() {
         agent = new Agent();
-        agent.setId(1L);
+        org.springframework.test.util.ReflectionTestUtils.setField(agent, "id", 1L);
 
         timeline = new Timeline();
         timeline.setId(1L);
@@ -99,7 +106,8 @@ class ReportServiceTest {
 
     @Test
     void getDraft_Success() {
-        draft.setId(1L);
+        org.springframework.test.util.ReflectionTestUtils.setField(draft, "id", 1L);
+        draft.setStatus(ReportStatus.DRAFT);
         when(reportRepository.findByIdAndAgentId(1L, 1L)).thenReturn(Optional.of(draft));
         ObservationReport result = reportService.getDraft(1L, 1L);
         assertEquals(draft, result);
@@ -115,7 +123,8 @@ class ReportServiceTest {
 
     @Test
     void deleteDraft_Success() {
-        draft.setId(1L);
+        org.springframework.test.util.ReflectionTestUtils.setField(draft, "id", 1L);
+        draft.setStatus(ReportStatus.DRAFT);
         when(reportRepository.findByIdAndAgentId(1L, 1L)).thenReturn(Optional.of(draft));
         doNothing().when(reportRepository).delete(draft);
         assertDoesNotThrow(() -> reportService.deleteDraft(1L, 1L));
