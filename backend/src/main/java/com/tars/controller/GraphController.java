@@ -1,11 +1,10 @@
 package com.tars.controller;
 
 import com.tars.model.Timeline;
-import com.tars.model.User;
 import com.tars.model.dto.AnomalyGraphDTO;
+import com.tars.model.enums.ParadoxRisk;
 import com.tars.service.GraphService;
 import com.tars.service.TimelineService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,27 +20,27 @@ public class GraphController {
     private final TimelineService timelineService;
 
     /**
-     * UC-09 — all anomalies for the graph.
-     * Both Agent and Supervisor can call this.
-     * Subscription filtering (iteration 3) will narrow results for Agents.
+     * UC-09 / UC-10 — graph anomalies, verified only, all filters optional.
+     *
+     * GET /api/graph/anomalies
+     * GET /api/graph/anomalies?timelineId=1
+     * GET /api/graph/anomalies?paradoxRisk=CRITICAL
+     * GET /api/graph/anomalies?yearFrom=2000&yearTo=2100
+     * GET /api/graph/anomalies?timelineId=1&paradoxRisk=HIGH&yearFrom=2040&yearTo=2060
      */
     @GetMapping("/anomalies")
-    public ResponseEntity<List<AnomalyGraphDTO>> getAnomalies(HttpServletRequest request) {
-        return ResponseEntity.ok(graphService.getAllAnomalies());
+    public ResponseEntity<List<AnomalyGraphDTO>> getAnomalies(
+            @RequestParam(required = false) Long timelineId,
+            @RequestParam(required = false) ParadoxRisk paradoxRisk,
+            @RequestParam(required = false) Integer yearFrom,
+            @RequestParam(required = false) Integer yearTo) {
+        return ResponseEntity.ok(
+                graphService.getGraphAnomalies(timelineId, paradoxRisk, yearFrom, yearTo)
+        );
     }
 
     /**
-     * Anomalies for a specific timeline lane — used when user clicks/selects a lane.
-     */
-    @GetMapping("/anomalies/timeline/{timelineId}")
-    public ResponseEntity<List<AnomalyGraphDTO>> getAnomaliesByTimeline(
-            @PathVariable Long timelineId) {
-        return ResponseEntity.ok(graphService.getAnomaliesByTimeline(timelineId));
-    }
-
-    /**
-     * All timelines — frontend needs these to render Y axis lanes.
-     * Replaces the old /api/reports/timelines endpoint which was Agent-only.
+     * All timelines — frontend needs these for Y axis lanes.
      */
     @GetMapping("/timelines")
     public ResponseEntity<List<Timeline>> getTimelines() {
