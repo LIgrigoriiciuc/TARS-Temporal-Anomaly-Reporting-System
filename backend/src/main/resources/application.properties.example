@@ -18,3 +18,12 @@ spring.mail.properties.mail.smtp.starttls.enable=true
 
 gemini.api.key=your_key_here
 gemini.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+
+stripe.api.key=sk_test_...       # from Stripe dashboard
+stripe.webhook.secret=whsec_...  # from stripe listen output
+stripe.success.url=http://localhost:4200/dashboard?upgraded=true
+stripe.cancel.url=http://localhost:4200/subscription
+stripe.price.pro.monthly=price_xxxxx
+stripe.price.pro.annual=price_xxxxx
+stripe.price.enterprise.monthly=price_xxxxx
+stripe.price.enterprise.annual=price_xxxxx

@@ -1,25 +1,22 @@
 package com.tars.model;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
-import java.util.Collection;
-import java.util.List;
+import lombok.ToString;
 
 @Entity
 @Table(name = "agents")
-@DiscriminatorValue("Agent") //tells Hibernate/db what type of object to create when reading from the database
+@DiscriminatorValue("Agent")
 @Data
 @EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor //without it, it can't deserialize from db
+@NoArgsConstructor
+@ToString(exclude = "subscription")
 public class Agent extends User {
 
     private Integer monthlyReportCount = 0;
 
+    @OneToOne(mappedBy = "agent", fetch = FetchType.LAZY, optional = true)
+    private Subscription subscription;
 }

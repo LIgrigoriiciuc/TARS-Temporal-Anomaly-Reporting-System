@@ -80,7 +80,7 @@ public class JwtFilter implements Filter {
     }
 
     private boolean isPublic(String path) {
-        return path.startsWith("/api/auth/") || path.startsWith("/ws/");
+        return path.startsWith("/api/auth/") || path.startsWith("/ws/") || path.startsWith("/api/stripe/");
     }
 
     private String extractJwt(HttpServletRequest request) {

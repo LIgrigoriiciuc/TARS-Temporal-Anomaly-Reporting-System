@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.tars.model.enums.ReportStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class ReportService {
     private final TimelineRepository timelineRepository;
     private final AnomalyAnalysisRepository analysisRepository;
     private final GeminiService geminiService;
+    private final SubscriptionService subscriptionService;
 
     // -------------------------------------------------------------------------
     // UC-05 Submit Report
@@ -38,6 +40,9 @@ public class ReportService {
         Timeline timeline = timelineRepository.findById(timelineId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
 
+        // Plan enforcement — check monthly report limit
+        subscriptionService.enforceReportLimit(agent);
+
         // Duplicate check — same agent, same timeline, same year
         List<ObservationReport> duplicates = reportRepository.findDuplicateReport(
                 agent.getId(), timelineId, report.getYear()
@@ -52,6 +57,9 @@ public class ReportService {
         report.setStatus(ReportStatus.PENDING_ANALYSIS);
 
         ObservationReport saved = reportRepository.save(report);
+
+        // Increment monthly report count
+        agent.setMonthlyReportCount(agent.getMonthlyReportCount() + 1);
 
         // Fire and forget — agent gets HTTP response immediately
         // GeminiService.analyzeReport() runs in its own thread + transaction
