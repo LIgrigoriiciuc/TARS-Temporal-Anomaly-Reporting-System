@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.5'
     // REMOVED: io.spring.dependency-management
+    id 'jacoco'
 }
 
 group = 'com.tars'
@@ -41,4 +42,9 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
 }

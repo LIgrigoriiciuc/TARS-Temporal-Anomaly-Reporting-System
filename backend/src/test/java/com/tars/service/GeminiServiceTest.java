@@ -27,6 +27,7 @@ class GeminiServiceTest {
     @Mock AnomalyRepository anomalyRepository;
     @Mock SimpMessagingTemplate messagingTemplate;
     @Mock GeminiHttpClient geminiHttpClient;
+    @Mock AlertService alertService;
 
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -79,7 +80,7 @@ class GeminiServiceTest {
         when(reportRepository.findById(99L)).thenReturn(Optional.of(report));
         when(reportRepository.findHistoricalContext(anyLong(), anyInt(), anyInt(), any(), anyLong()))
                 .thenReturn(List.of());
-        when(anomalyRepository.findByTimelineIdAndVerifiedFalse(anyLong())).thenReturn(List.of());
+        when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
     }
 
@@ -225,7 +226,7 @@ class GeminiServiceTest {
                 .build();
         ReflectionTestUtils.setField(foundingReport, "id", 77L);
 
-        when(anomalyRepository.findByTimelineIdAndVerifiedFalse(10L)).thenReturn(List.of(unverified));
+        when(anomalyRepository.findByTimelineId(10L)).thenReturn(List.of(unverified));
         when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport));
 
         geminiService.analyzeReport(99L);
@@ -366,5 +367,61 @@ class GeminiServiceTest {
         assertThat(failed.getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
         assertThat(failed.getExplanation()).contains("technical error");
         verify(anomalyRepository, never()).save(any());
+    }
+    // -------------------------------------------------------------------------
+    // 10. Second agent corroborates → anomaly verified → alert triggered
+    // -------------------------------------------------------------------------
+
+    @Test
+    void analyzeReport_secondAgentCorroborates_verifiesAnomalyAndTriggersAlert() throws Exception {
+        // Current report submitted by agentTwo
+        ReflectionTestUtils.setField(report, "agent", agentTwo);
+
+        when(geminiHttpClient.call(anyString())).thenReturn("""
+                {
+                  "confirmed": true,
+                  "type": "RFT",
+                  "paradoxRisk": "CRITICAL",
+                  "explanation": "Rift confirmed by second observer.",
+                  "contributingReportIds": [12, 45]
+                }
+                """);
+
+        // Unverified anomaly founded by agentOne (report 77) — CRITICAL risk
+        Anomaly unverified = Anomaly.builder()
+                .type(AnomalyType.RFT)
+                .paradoxRisk(ParadoxRisk.CRITICAL)
+                .timeline(timeline)
+                .year(2044)
+                .contributingReportIds("77,12,45")
+                .verified(false)
+                .build();
+        ReflectionTestUtils.setField(unverified, "id", 66L);
+
+        ObservationReport foundingReport = ObservationReport.builder()
+                .agent(agentOne)
+                .build();
+        ReflectionTestUtils.setField(foundingReport, "id", 77L);
+
+        when(anomalyRepository.findByTimelineId(10L)).thenReturn(List.of(unverified));
+        when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport));
+
+        geminiService.analyzeReport(99L);
+
+        // Anomaly promoted to verified
+        assertThat(unverified.isVerified()).isTrue();
+        verify(anomalyRepository).save(unverified);
+
+        // Alert triggered because CRITICAL
+        verify(alertService).triggerIfCritical(unverified);
+
+        // Report confirmed
+        assertThat(report.getStatus()).isEqualTo(ReportStatus.CONFIRMED);
+
+        // WebSocket pushed to agent
+        verify(messagingTemplate).convertAndSend(
+                eq("/topic/analysis/" + agentTwo.getId()),
+                (Object) any()
+        );
     }
 }
