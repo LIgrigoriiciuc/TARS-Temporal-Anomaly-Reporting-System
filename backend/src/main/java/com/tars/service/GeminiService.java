@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tars.model.Anomaly;
 import com.tars.model.AnomalyAnalysis;
 import com.tars.model.ObservationReport;
-import com.tars.model.Timeline;
 import com.tars.model.enums.AnalysisStatus;
 import com.tars.model.enums.AnomalyType;
 import com.tars.model.enums.ParadoxRisk;
@@ -15,9 +14,9 @@ import com.tars.repository.AnomalyAnalysisRepository;
 import com.tars.repository.AnomalyRepository;
 import com.tars.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,7 +57,6 @@ public class GeminiService {
             return;
         }
 
-        // Create PENDING analysis immediately so agent can see something while waiting
         AnomalyAnalysis analysis = AnomalyAnalysis.builder()
                 .report(report)
                 .analysisStatus(AnalysisStatus.PENDING)
@@ -73,8 +71,7 @@ public class GeminiService {
             JsonNode parsed = parseGeminiResponse(rawResponse);
             if (parsed == null) {
                 log.warn("GeminiService: first parse failed for report {}, retrying", reportId);
-                String retryResponse = callGemini(buildStrictPrompt(report, historicalReports));
-                parsed = parseGeminiResponse(retryResponse);
+                parsed = parseGeminiResponse(callGemini(buildStrictPrompt(report, historicalReports)));
             }
 
             if (parsed != null) {
@@ -98,6 +95,132 @@ public class GeminiService {
         }
     }
 
+    @Transactional
+    protected void saveCompletedAnalysis(AnomalyAnalysis analysis, JsonNode parsed,
+                                         ObservationReport report,
+                                         List<ObservationReport> historicalReports) {
+        boolean confirmed = parsed.path("confirmed").asBoolean(false);
+        String explanation = parsed.path("explanation").asText("");
+
+        // What we sent to Gemini
+        String correlatedIds = historicalReports.stream()
+                .map(r -> String.valueOf(r.getId()))
+                .collect(Collectors.joining(","));
+
+        // What Gemini picked as causal — never includes the submitting agent's own report
+        Set<Long> contributingSet = extractIdSet(parsed, "contributingReportIds");
+        contributingSet.remove(report.getId());
+        String contributingIds = contributingSet.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+
+        analysis.setConfirmed(confirmed);
+        analysis.setExplanation(explanation);
+        analysis.setCorrelatedReportIds(correlatedIds);
+        analysis.setContributingReportIds(contributingIds);
+        analysis.setAnalysisStatus(AnalysisStatus.COMPLETED);
+
+        if (confirmed) {
+            AnomalyType type = parseEnum(AnomalyType.class, parsed.path("type").asText());
+            ParadoxRisk paradoxRisk = parseEnum(ParadoxRisk.class, parsed.path("paradoxRisk").asText());
+
+            // Check unverified anomalies first, then verified
+            Anomaly anomaly = findOverlappingAnomaly(contributingSet, report.getTimeline().getId());
+
+            if (anomaly != null) {
+                // Link to existing anomaly
+                log.info("GeminiService: report {} linked to anomaly {}", report.getId(), anomaly.getId());
+                analysis.setAnomaly(anomaly);
+
+                // Check if this new agent provides corroboration for an unverified anomaly
+                if (!anomaly.isVerified()) {
+                    Long submittingAgentId = report.getAgent().getId();
+                    boolean newAgent = isNewAgent(anomaly.getContributingReportIds(), submittingAgentId);
+                    if (newAgent) {
+                        anomaly.setVerified(true);
+                        anomalyRepository.save(anomaly);
+                        log.info("GeminiService: anomaly {} corroborated and verified", anomaly.getId());
+                    }
+                }
+            } else {
+                // New anomaly — always starts unverified (single observer so far)
+                String foundingIds = report.getId() +
+                        (contributingIds.isBlank() ? "" : "," + contributingIds);
+
+                Anomaly newAnomaly = Anomaly.builder()
+                        .type(type)
+                        .paradoxRisk(paradoxRisk)
+                        .timeline(report.getTimeline())
+                        .year(report.getYear())
+                        .contributingReportIds(foundingIds)
+                        .verified(false)
+                        .build();
+                anomalyRepository.save(newAnomaly);
+                analysis.setAnomaly(newAnomaly);
+                log.info("GeminiService: new unverified anomaly created for report {}", report.getId());
+            }
+
+            report.setStatus(ReportStatus.CONFIRMED);
+        } else {
+            report.setStatus(ReportStatus.REJECTED);
+        }
+
+        analysisRepository.save(analysis);
+        reportRepository.save(report);
+        pushToAgent(report);
+    }
+
+    /**
+     * Checks if the submitting agent is different from all agents
+     * whose reports are in the founding contributing pool.
+     * If yes — this is genuine independent corroboration.
+     */
+    private boolean isNewAgent(String foundingContributingIds, Long submittingAgentId) {
+        Set<Long> foundingReportIds = parseIdSet(foundingContributingIds);
+        if (foundingReportIds.isEmpty()) return true;
+
+        // Load the founding reports and collect their agent IDs
+        Set<Long> foundingAgentIds = reportRepository.findAllById(foundingReportIds)
+                .stream()
+                .map(r -> r.getAgent().getId())
+                .collect(Collectors.toSet());
+
+        return !foundingAgentIds.contains(submittingAgentId);
+    }
+
+    /**
+     * Checks all anomalies on this timeline (unverified first, then verified)
+     * for 75% overlap with the new contributing set.
+     */
+    private Anomaly findOverlappingAnomaly(Set<Long> newContributing, Long timelineId) {
+        if (newContributing.isEmpty()) return null;
+
+        // Check unverified first — they need corroboration more urgently
+        List<Anomaly> candidates = new ArrayList<>(
+                anomalyRepository.findByTimelineIdAndVerifiedFalse(timelineId)
+        );
+        // Then verified ones — a new report might still relate to them
+        candidates.addAll(anomalyRepository.findByTimelineId(timelineId).stream()
+                .filter(Anomaly::isVerified)
+                .toList());
+
+        for (Anomaly candidate : candidates) {
+            Set<Long> existingPool = parseIdSet(candidate.getContributingReportIds());
+            if (existingPool.isEmpty()) continue;
+
+            Set<Long> intersection = new HashSet<>(newContributing);
+            intersection.retainAll(existingPool);
+
+            int smallerSize = Math.min(newContributing.size(), existingPool.size());
+            double overlap = (double) intersection.size() / smallerSize;
+
+            if (overlap >= OVERLAP_THRESHOLD) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
     private List<ObservationReport> fetchHistoricalContext(ObservationReport report) {
         if (report.getTimeline() == null || report.getYear() == null) return List.of();
 
@@ -113,143 +236,9 @@ public class GeminiService {
                 report.getTimeline().getId(),
                 report.getYear() - YEAR_WINDOW,
                 report.getYear() + YEAR_WINDOW,
-                keyword
+                keyword,
+                report.getAgent().getId() // exclude submitting agent
         );
-    }
-
-    @Transactional
-    protected void saveCompletedAnalysis(AnomalyAnalysis analysis, JsonNode parsed,
-                                         ObservationReport report, List<ObservationReport> historicalReports) {
-        boolean confirmed = parsed.path("confirmed").asBoolean(false);
-        String explanation = parsed.path("explanation").asText("");
-
-        // Our selection — what we sent to Gemini
-        String correlatedIds = historicalReports.stream()
-                .map(r -> String.valueOf(r.getId()))
-                .collect(Collectors.joining(","));
-
-        // Gemini's selection — what it thinks caused the anomaly, minus the current report
-        Set<Long> contributingSet = extractIdSet(parsed, "contributingReportIds");
-        contributingSet.remove(report.getId()); // never include self
-        String contributingIds = contributingSet.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
-
-        analysis.setConfirmed(confirmed);
-        analysis.setExplanation(explanation);
-        analysis.setCorrelatedReportIds(correlatedIds);
-        analysis.setContributingReportIds(contributingIds);
-        analysis.setAnalysisStatus(AnalysisStatus.COMPLETED);
-
-        if (confirmed) {
-            AnomalyType type = parseEnum(AnomalyType.class, parsed.path("type").asText());
-            ParadoxRisk paradoxRisk = parseEnum(ParadoxRisk.class, parsed.path("paradoxRisk").asText());
-
-            // Check if this analysis belongs to an existing anomaly (75% overlap)
-            Anomaly anomaly = findOverlappingAnomaly(contributingSet, report.getTimeline().getId());
-
-            if (anomaly != null) {
-                // Link to existing anomaly and expand its contributing pool
-                log.info("GeminiService: report {} linked to existing anomaly {}", report.getId(), anomaly.getId());
-                mergeContributingIds(anomaly, contributingSet, report.getId());
-                anomalyRepository.save(anomaly);
-                analysis.setAnomaly(anomaly);
-            } else {
-                // Create new anomaly
-                Anomaly newAnomaly = Anomaly.builder()
-                        .type(type)
-                        .paradoxRisk(paradoxRisk)
-                        .timeline(report.getTimeline())
-                        .year(report.getYear())
-                        .contributingReportIds(report.getId() + (contributingIds.isBlank() ? "" : "," + contributingIds))
-                        .build();
-                anomalyRepository.save(newAnomaly);
-                analysis.setAnomaly(newAnomaly);
-                log.info("GeminiService: new anomaly created for report {}", report.getId());
-            }
-
-            report.setStatus(ReportStatus.CONFIRMED);
-        } else {
-            report.setStatus(ReportStatus.REJECTED);
-        }
-
-        analysisRepository.save(analysis);
-        reportRepository.save(report);
-
-        // Push result to agent via WebSocket — no polling needed
-        pushToAgent(report);
-    }
-
-    /**
-     * Finds an existing anomaly on the same timeline whose contributing pool
-     * overlaps >= 75% with the new analysis's contributing IDs.
-     * Excludes the current report's ID from comparison — every report matches itself trivially.
-     */
-    private Anomaly findOverlappingAnomaly(Set<Long> newContributing, Long timelineId) {
-        if (newContributing.isEmpty()) return null;
-
-        List<Anomaly> candidates = anomalyRepository.findByTimelineId(timelineId);
-
-        for (Anomaly candidate : candidates) {
-            Set<Long> existingPool = parseIdSet(candidate.getContributingReportIds());
-            if (existingPool.isEmpty()) continue;
-
-            Set<Long> intersection = new HashSet<>(newContributing);
-            intersection.retainAll(existingPool);
-
-            // Overlap relative to the smaller set
-            int smallerSize = Math.min(newContributing.size(), existingPool.size());
-            double overlap = (double) intersection.size() / smallerSize;
-
-            if (overlap >= OVERLAP_THRESHOLD) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Merges new contributing IDs into the anomaly's pool (union, no duplicates).
-     * Also adds the current report's own ID to the pool.
-     */
-    private void mergeContributingIds(Anomaly anomaly, Set<Long> newIds, Long currentReportId) {
-        Set<Long> existing = parseIdSet(anomaly.getContributingReportIds());
-        existing.addAll(newIds);
-        existing.add(currentReportId);
-        anomaly.setContributingReportIds(
-                existing.stream().map(String::valueOf).collect(Collectors.joining(","))
-        );
-    }
-
-    private Set<Long> extractIdSet(JsonNode root, String field) {
-        Set<Long> ids = new HashSet<>();
-        JsonNode node = root.path(field);
-        if (node.isArray()) {
-            node.forEach(n -> {
-                try { ids.add(n.asLong()); } catch (Exception ignored) {}
-            });
-        }
-        return ids;
-    }
-
-    private void pushToAgent(ObservationReport report) {
-        try {
-            messagingTemplate.convertAndSend(
-                    "/topic/analysis/" + report.getAgent().getId(),
-                    ReportMapper.toSubmittedDto(report)
-            );
-        } catch (Exception e) {
-            log.warn("GeminiService: WebSocket push failed for report {}: {}", report.getId(), e.getMessage());
-        }
-    }
-
-    private Set<Long> parseIdSet(String csv) {
-        if (csv == null || csv.isBlank()) return new HashSet<>();
-        return Arrays.stream(csv.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(Long::parseLong)
-                .collect(Collectors.toCollection(HashSet::new));
     }
 
     private String buildPrompt(ObservationReport report, List<ObservationReport> historical) {
@@ -278,7 +267,7 @@ public class GeminiService {
         sb.append("Description: ").append(report.getDescription()).append("\n\n");
 
         if (!historical.isEmpty()) {
-            sb.append("HISTORICAL CONTEXT (related reports from the same timeline and period):\n");
+            sb.append("HISTORICAL CONTEXT (reports from other agents on the same timeline and period):\n");
             for (ObservationReport h : historical) {
                 sb.append("- Report ID ").append(h.getId())
                         .append(" | Year: ").append(h.getYear())
@@ -289,7 +278,7 @@ public class GeminiService {
             }
             sb.append("\n");
         } else {
-            sb.append("HISTORICAL CONTEXT: No related reports found.\n\n");
+            sb.append("HISTORICAL CONTEXT: No related reports from other agents found.\n\n");
         }
 
         sb.append("""
@@ -353,6 +342,37 @@ public class GeminiService {
             log.warn("GeminiService: JSON parse failed: {}", e.getMessage());
             return null;
         }
+    }
+
+    private void pushToAgent(ObservationReport report) {
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/analysis/" + report.getAgent().getId(),
+                    ReportMapper.toSubmittedDto(report)
+            );
+        } catch (Exception e) {
+            log.warn("GeminiService: WebSocket push failed for report {}: {}", report.getId(), e.getMessage());
+        }
+    }
+
+    private Set<Long> extractIdSet(JsonNode root, String field) {
+        Set<Long> ids = new HashSet<>();
+        JsonNode node = root.path(field);
+        if (node.isArray()) {
+            node.forEach(n -> {
+                try { ids.add(n.asLong()); } catch (Exception ignored) {}
+            });
+        }
+        return ids;
+    }
+
+    private Set<Long> parseIdSet(String csv) {
+        if (csv == null || csv.isBlank()) return new HashSet<>();
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(Long::parseLong)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     private <T extends Enum<T>> T parseEnum(Class<T> enumClass, String value) {

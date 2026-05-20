@@ -31,11 +31,16 @@ public interface ReportRepository extends JpaRepository<ObservationReport, Long>
      * yearFrom/yearTo = submitted year ± 50 (configurable in GeminiService)
      * keyword matching is loose — LIKE on the combined keywords string
      */
+    /**
+     * UC-08 — historical context for Gemini prompt.
+     * Excludes the submitting agent's own reports — agents cannot self-corroborate.
+     */
     @Query("""
         SELECT r FROM ObservationReport r
         WHERE r.timeline.id = :timelineId
         AND r.year BETWEEN :yearFrom AND :yearTo
-        AND r.status IN ('CONFIRMED', 'REJECTED','PENDING_ANALYSIS')
+        AND r.status IN ('CONFIRMED', 'REJECTED', 'PENDING_ANALYSIS')
+        AND r.agent.id != :excludeAgentId
         AND (:keyword IS NULL OR LOWER(r.keywords) LIKE LOWER(CONCAT('%', :keyword, '%')))
         ORDER BY r.year ASC
         """)
@@ -43,6 +48,24 @@ public interface ReportRepository extends JpaRepository<ObservationReport, Long>
             @Param("timelineId") Long timelineId,
             @Param("yearFrom") int yearFrom,
             @Param("yearTo") int yearTo,
-            @Param("keyword") String keyword
+            @Param("keyword") String keyword,
+            @Param("excludeAgentId") Long excludeAgentId
+    );
+
+    /**
+     * Duplicate check — same agent, same timeline, same year, not a draft.
+     * If result is non-empty, block submission with 409.
+     */
+    @Query("""
+        SELECT r FROM ObservationReport r
+        WHERE r.agent.id = :agentId
+        AND r.timeline.id = :timelineId
+        AND r.year = :year
+        AND r.status IN ('PENDING_ANALYSIS', 'CONFIRMED')
+        """)
+    List<ObservationReport> findDuplicateReport(
+            @Param("agentId") Long agentId,
+            @Param("timelineId") Long timelineId,
+            @Param("year") int year
     );
 }

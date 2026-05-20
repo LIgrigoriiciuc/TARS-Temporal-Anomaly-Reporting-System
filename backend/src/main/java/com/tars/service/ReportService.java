@@ -38,6 +38,15 @@ public class ReportService {
         Timeline timeline = timelineRepository.findById(timelineId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
 
+        // Duplicate check — same agent, same timeline, same year
+        List<ObservationReport> duplicates = reportRepository.findDuplicateReport(
+                agent.getId(), timelineId, report.getYear()
+        );
+        if (!duplicates.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "You already have an active report for this timeline and year");
+        }
+
         report.setAgent(agent);
         report.setTimeline(timeline);
         report.setStatus(ReportStatus.PENDING_ANALYSIS);

@@ -40,20 +40,27 @@ public class Anomaly {
     private Integer year;
 
     /**
-     * All analyses that have been linked to this anomaly.
-     * First one created it, subsequent ones were matched via 75% overlap check.
+     * All analyses linked to this anomaly.
+     * First one created it. Subsequent ones matched via 75% overlap on contributingReportIds.
+     * contributingReportIds itself is frozen at creation — set by the founding analysis only.
      */
     @OneToMany(mappedBy = "anomaly", fetch = FetchType.LAZY)
     @Builder.Default
     private List<AnomalyAnalysis> analyses = new ArrayList<>();
 
     /**
-     * Union of all contributingReportIds across all linked analyses.
-     * Grows as new analyses are linked — used for overlap check on future reports.
+     * IDs of reports that originally defined this anomaly — set once, never changed.
+     * Used for 75% overlap check when linking future analyses.
      * Comma-separated, internal only.
      */
     @Column(columnDefinition = "TEXT")
     private String contributingReportIds;
+
+    /**
+     * false = awaiting corroboration (only one agent observed so far)
+     * true = at least 2 distinct agents confirmed this anomaly
+     */
+    private boolean verified;
 
     private LocalDateTime detectedAt;
 

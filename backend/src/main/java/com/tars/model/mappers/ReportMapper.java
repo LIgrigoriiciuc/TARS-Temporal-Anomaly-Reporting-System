@@ -7,10 +7,6 @@ import com.tars.model.dto.*;
 
 public class ReportMapper {
 
-    // -------------------------------------------------------------------------
-    // Draft mapping (iteration 1)
-    // -------------------------------------------------------------------------
-
     public static ObservationReport toEntity(DraftRequestDTO dto) {
         if (dto == null) return null;
         ObservationReport report = new ObservationReport();
@@ -76,6 +72,7 @@ public class ReportMapper {
                 .analyzedAt(analysis.getAnalyzedAt())
                 .type(anomaly != null ? anomaly.getType() : null)
                 .paradoxRisk(anomaly != null ? anomaly.getParadoxRisk() : null)
+                .anomalyVerified(anomaly != null ? anomaly.isVerified() : null)
                 .build();
     }
 }

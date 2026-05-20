@@ -30,5 +30,10 @@ public class AnalysisResultDTO {
     private ParadoxRisk paradoxRisk;
 
     private String explanation;
+    // null if confirmed=false or still pending
+    // false = anomaly exists but awaiting a second independent observer
+    // true = at least 2 distinct agents confirmed this anomaly
+    private Boolean anomalyVerified;
+
     private LocalDateTime analyzedAt;
 }
