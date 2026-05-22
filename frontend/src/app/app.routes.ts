@@ -29,5 +29,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/graph/graph').then(m => m.GraphPage),
     canActivate: [authGuard]
   },
+  {
+    path: 'subscription',
+    loadComponent: () => import('./features/subscription/subscription').then(m => m.SubscriptionPage),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: 'login' }, // always last
 ];

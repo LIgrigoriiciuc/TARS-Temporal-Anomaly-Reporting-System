@@ -1,0 +1,255 @@
+<!-- SUBSCRIPTION PAGE -->
+<app-sidebar role="agent"></app-sidebar>
+
+<header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
+  <span class="text-base font-black tracking-tight uppercase">TARS | SUBSCRIPTION_MGMT</span>
+  <span class="text-[9px] font-bold font-mono opacity-70">UC-12 // UC-13</span>
+</header>
+
+<main class="ml-44 p-4 mb-12">
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center p-12">
+      <p class="text-[10px] font-black uppercase animate-pulse text-primary/60">⟳ LOADING...</p>
+    </div>
+  }
+
+  @if (!loading()) {
+
+    <!-- Success banner -->
+    @if (justUpgraded()) {
+      <div class="beveled-outset mb-4 px-4 py-3 flex items-center justify-between">
+        <p class="text-[10px] font-black uppercase">
+          ✓ UPGRADE_CONFIRMED — Plan activated successfully.
+        </p>
+        <button (click)="justUpgraded.set(false)" class="button-90s text-[9px]">DISMISS</button>
+      </div>
+    }
+
+    <!-- Cancel message -->
+    @if (cancelMessage()) {
+      <div class="beveled-inset mb-4 px-4 py-3">
+        <p class="text-[10px] font-bold font-mono">{{ cancelMessage() }}</p>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="beveled-inset mb-4 px-3 py-2">
+        <p class="text-[10px] font-bold font-mono">! ERROR: {{ error() }}</p>
+      </div>
+    }
+
+    <!-- ── Current Plan Status ────────────────────────────────────────────── -->
+    @if (subscription()) {
+      <div class="beveled-outset mb-4">
+        <div class="bg-gray-300 px-4 py-2 border-b border-gray-400">
+          <span class="text-[10px] font-black uppercase">Current_Plan // Status</span>
+        </div>
+        <div class="p-4 bg-[#d1d5db] grid grid-cols-2 md:grid-cols-4 gap-3">
+
+          <div class="beveled-inset px-3 py-2">
+            <p class="text-[9px] uppercase font-bold text-primary/40 mb-1">Plan</p>
+            <p class="text-[13px] font-black font-mono">{{ subscription()!.plan }}</p>
+          </div>
+
+          <div class="beveled-inset px-3 py-2">
+            <p class="text-[9px] uppercase font-bold text-primary/40 mb-1">Reports</p>
+            <p class="text-[13px] font-black font-mono">
+              {{ subscription()!.reportsUsed }} /
+              {{ subscription()!.reportsAllowed === -1 ? '∞' : subscription()!.reportsAllowed }}
+            </p>
+          </div>
+
+          <div class="beveled-inset px-3 py-2">
+            <p class="text-[9px] uppercase font-bold text-primary/40 mb-1">Timelines</p>
+            <p class="text-[13px] font-black font-mono">
+              {{ timelines().filter(t => t.accessible).length }} /
+              {{ subscription()!.timelinesAllowed === 2147483647 ? '∞' : subscription()!.timelinesAllowed }}
+            </p>
+          </div>
+
+          <div class="beveled-inset px-3 py-2">
+            <p class="text-[9px] uppercase font-bold text-primary/40 mb-1">Renewal</p>
+            <p class="text-[11px] font-mono font-bold">
+              @if (subscription()!.expiryDate) {
+                {{ subscription()!.expiryDate | date:'yyyy.MM.dd' }}
+                @if (subscription()!.cancellationScheduled) {
+                  <span class="text-[9px] opacity-60"> (CANCELS)</span>
+                }
+              } @else {
+                N/A
+              }
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Accessible timelines list -->
+        @if (timelines().length > 0) {
+          <div class="px-4 pb-4 bg-[#d1d5db]">
+            <p class="text-[9px] uppercase font-bold text-primary/40 mb-2">Active_Timelines</p>
+            <div class="flex flex-wrap gap-1">
+              @for (t of timelines(); track t.id) {
+                @if (t.accessible) {
+                  <span class="beveled-inset px-2 py-0.5 text-[9px] font-mono font-bold">{{ t.name }}</span>
+                }
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Cancel section -->
+        @if (subscription()!.plan !== 'FREE' && !subscription()!.cancellationScheduled) {
+          <div class="px-4 pb-4 bg-[#d1d5db] border-t border-gray-400 pt-3">
+            @if (!showCancelConfirm()) {
+              <button (click)="showCancelConfirm.set(true)" class="button-90s text-[9px]">
+                CANCEL_SUBSCRIPTION
+              </button>
+            } @else {
+              <div class="beveled-inset px-3 py-3 flex flex-col gap-2">
+                <p class="text-[10px] font-bold font-mono">
+                  Plan reverts to FREE at end of billing cycle.
+                  Active timelines beyond 1 will be deactivated. Confirm?
+                </p>
+                @if (cancelError()) {
+                  <p class="text-[9px] font-mono">! {{ cancelError() }}</p>
+                }
+                <div class="flex gap-2">
+                  <button (click)="confirmCancel()" class="button-90s text-[9px]">CONFIRM_CANCEL</button>
+                  <button (click)="showCancelConfirm.set(false)" class="button-90s text-[9px]">ABORT</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    }
+
+    <!-- ── Timeline Picker (PRO upgrade) ─────────────────────────────────── -->
+    @if (showTimelinePicker() && slotsRemaining() > 0) {
+      <div class="beveled-outset mb-4">
+        <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+          <span class="text-[10px] font-black uppercase">Select_Timelines // Choose {{ slotsRemaining() }} more</span>
+          <span class="beveled-inset px-2 py-0.5 text-[9px] font-mono">
+            SLOTS_REMAINING: {{ slotsRemaining() }}
+          </span>
+        </div>
+        <div class="p-4 bg-[#d1d5db]">
+          @if (pickerError()) {
+            <div class="beveled-inset px-3 py-1 mb-3">
+              <p class="text-[9px] font-mono">! {{ pickerError() }}</p>
+            </div>
+          }
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+            @for (t of timelines(); track t.id) {
+              <button
+                (click)="addTimeline(t)"
+                [disabled]="t.accessible || pickerLoading()"
+                class="beveled-outset px-3 py-2 text-left"
+                [class.opacity-40]="t.accessible"
+                [class.cursor-default]="t.accessible">
+                <p class="text-[10px] font-black font-mono">{{ t.name }}</p>
+                <p class="text-[9px] font-mono text-primary/50">
+                  {{ t.accessible ? 'ACTIVE' : 'AVAILABLE' }}
+                </p>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Plan Cards ─────────────────────────────────────────────────────── -->
+    <div class="beveled-outset">
+      <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+        <span class="text-[10px] font-black uppercase">Upgrade_Plans</span>
+        <!-- Billing toggle -->
+        <div class="flex">
+          <button
+            (click)="billingCycle = 'MONTHLY'"
+            [class.beveled-inset]="billingCycle === 'MONTHLY'"
+            [class.beveled-outset]="billingCycle !== 'MONTHLY'"
+            class="px-3 py-1 text-[9px] font-black uppercase">
+            MONTHLY
+          </button>
+          <button
+            (click)="billingCycle = 'ANNUAL'"
+            [class.beveled-inset]="billingCycle === 'ANNUAL'"
+            [class.beveled-outset]="billingCycle !== 'ANNUAL'"
+            class="px-3 py-1 text-[9px] font-black uppercase">
+            ANNUAL
+          </button>
+        </div>
+      </div>
+
+      <div class="p-4 bg-[#d1d5db] grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        @for (plan of plans; track plan.key) {
+          <div class="beveled-outset flex flex-col overflow-hidden">
+
+            <div class="bg-gray-300 px-3 py-2 border-b border-gray-400 flex justify-between items-center">
+              <span class="text-[10px] font-black uppercase">{{ plan.label }}</span>
+              @if (isCurrentPlan(plan.key)) {
+                <span class="beveled-inset px-2 py-0.5 text-[9px] font-mono">CURRENT</span>
+              }
+            </div>
+
+            <div class="p-4 bg-[#d1d5db] flex flex-col gap-3 flex-1">
+
+              <div class="beveled-inset px-3 py-2">
+                <p class="text-[9px] uppercase font-bold text-primary/40 mb-1">Price</p>
+                <p class="text-[20px] font-black font-mono">
+                  ${{ price(plan) }}
+                  <span class="text-[10px] font-normal opacity-60">/mo</span>
+                </p>
+                @if (billingCycle === 'ANNUAL') {
+                  <p class="text-[9px] font-mono text-primary/50">billed annually</p>
+                }
+              </div>
+
+              <div class="flex flex-col gap-1">
+                @for (f of plan.features; track f) {
+                  <p class="text-[10px] font-mono text-primary/70 flex gap-2">
+                    <span class="opacity-40">▸</span>{{ f }}
+                  </p>
+                }
+              </div>
+
+              @if (upgradeError() && !isCurrentPlan(plan.key)) {
+                <div class="beveled-inset px-2 py-1">
+                  <p class="text-[9px] font-mono">! {{ upgradeError() }}</p>
+                </div>
+              }
+
+              <button
+                (click)="upgrade(plan.key)"
+                [disabled]="isCurrentPlan(plan.key) || isDowngrade(plan.key)"
+                class="button-90s-primary button-90s w-full justify-center py-2 mt-auto"
+                [class.opacity-40]="isCurrentPlan(plan.key) || isDowngrade(plan.key)"
+                [class.cursor-default]="isCurrentPlan(plan.key) || isDowngrade(plan.key)">
+                {{ isCurrentPlan(plan.key) ? 'CURRENT_PLAN' : isDowngrade(plan.key) ? 'LOWER_TIER' : 'UPGRADE_SYSTEM' }}
+              </button>
+
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+
+  }
+
+</main>
+
+<!-- Status bar -->
+<footer class="fixed bottom-0 left-0 w-full h-10 flex items-center px-4 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary gap-6">
+  <span class="flex items-center gap-2">
+    <span class="w-3 h-3 bg-green-500 border border-green-900"></span>
+    SYSTEM: ONLINE
+  </span>
+  <span class="opacity-50">UTC SYNC: ACTIVE</span>
+  <span class="opacity-50">BUILD_94.08.12</span>
+</footer>

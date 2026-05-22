@@ -132,7 +132,8 @@
             <rect
               x="0" [attr.y]="HEADER_HEIGHT + i * LANE_HEIGHT"
               [attr.width]="svgWidth()" [attr.height]="LANE_HEIGHT"
-              [attr.fill]="i % 2 === 0 ? '#f9fafb' : '#ffffff'"
+              [attr.fill]="t.accessible === false ? '#f3f4f6' : (i % 2 === 0 ? '#f9fafb' : '#ffffff')"
+              [attr.opacity]="t.accessible === false ? '0.6' : '1'"
             />
             <line
               x1="0" [attr.y1]="HEADER_HEIGHT + (i + 1) * LANE_HEIGHT"
@@ -173,8 +174,9 @@
               [attr.x]="Y_LABEL_WIDTH - 6"
               [attr.y]="HEADER_HEIGHT + i * LANE_HEIGHT + LANE_HEIGHT / 2 + 3"
               text-anchor="end" font-size="9" font-weight="700"
-              font-family="monospace" fill="#374151">
-              {{ t.name }}
+              font-family="monospace"
+              [attr.fill]="t.accessible === false ? '#9ca3af' : '#374151'">
+              {{ t.accessible === false ? '⊘ ' : '' }}{{ t.name }}
             </text>
           }
 

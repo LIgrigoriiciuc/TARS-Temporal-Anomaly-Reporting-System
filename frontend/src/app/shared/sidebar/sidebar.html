@@ -28,6 +28,13 @@
       <span class="sidebar-icon">◈</span> TIMELINE_GRAPH
     </a>
 
+    @if (role === 'agent') {
+      <a routerLink="/subscription" routerLinkActive="bg-primary text-white"
+         class="sidebar-item">
+        <span class="sidebar-icon">◇</span> SUBSCRIPTION
+      </a>
+    }
+
   </div>
 
   <div class="px-3 py-2 border-t border-gray-400">

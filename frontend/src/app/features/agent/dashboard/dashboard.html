@@ -1,6 +1,35 @@
 <!-- AGENT DASHBOARD (field_module) -->
 <app-sidebar role="agent"></app-sidebar>
 
+<!-- Timeline setup overlay — shown on fresh accounts with no subscription yet -->
+@if (needsTimelineSetup()) {
+  <div class="fixed inset-0 z-[90] bg-black/60 flex items-center justify-center">
+    <div class="beveled-outset w-full max-w-[520px] mx-4">
+      <header class="h-8 bg-gray-300 px-3 flex items-center border-b-2 border-gray-400 justify-between">
+        <span class="font-bold text-[11px] uppercase tracking-widest">TARS // INITIAL_SETUP</span>
+        <span class="beveled-inset px-2 py-0.5 text-[9px] font-mono">REQUIRED</span>
+      </header>
+      <div class="p-5 bg-[#d1d5db] flex flex-col gap-4">
+        <div>
+          <p class="text-[11px] font-black uppercase mb-1">Select Your Timeline</p>
+          <p class="text-[9px] font-mono text-primary/60">Your FREE plan includes 1 timeline slot. Choose the timeline you will monitor.</p>
+        </div>
+        @if (setupError()) {
+          <div class="beveled-inset px-3 py-1"><p class="text-[9px] font-mono">! {{ setupError() }}</p></div>
+        }
+        <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+          @for (t of allTimelines(); track t.id) {
+            <button (click)="selectInitialTimeline(t.id)" [disabled]="setupLoading()" class="beveled-outset px-3 py-2 text-left hover:bg-gray-200">
+              <p class="text-[10px] font-black font-mono">{{ t.name }}</p>
+            </button>
+          }
+        </div>
+        @if (setupLoading()) { <p class="text-[9px] font-mono animate-pulse">⟳ ESTABLISHING_ACCESS...</p> }
+      </div>
+    </div>
+  </div>
+}
+
 <!-- Account terminated overlay -->
 @if (accountTerminated()) {
   <div class="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center">

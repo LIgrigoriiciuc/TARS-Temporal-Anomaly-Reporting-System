@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth';
 import { ReportService } from '../../../core/services/report';
+import { SubscriptionService, TimelineDTO } from '../../../core/services/subscription';
 import { WebSocketService } from '../../../core/services/websocket';
 import { WS_TOPICS } from '../../../core/services/ws-topics';
 import { Sidebar } from '../../../shared/sidebar/sidebar';
@@ -18,6 +19,12 @@ export class Dashboard implements OnInit, OnDestroy {
   drafts            = signal<any[]>([]);
   timelines         = signal<any[]>([]);
   submittedReports  = signal<any[]>([]);
+
+  // Timeline setup (fresh accounts)
+  needsTimelineSetup = signal(false);
+  allTimelines       = signal<TimelineDTO[]>([]);
+  setupLoading       = signal(false);
+  setupError         = signal('');
   draftError        = signal('');
   submitError       = signal('');
   accountTerminated = signal(false);
@@ -40,6 +47,7 @@ export class Dashboard implements OnInit, OnDestroy {
   constructor(
     private authService  : AuthService,
     private reportService: ReportService,
+    private subService   : SubscriptionService,
     private wsService    : WebSocketService
   ) {}
 
@@ -49,6 +57,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.loadDrafts();
     this.loadTimelines();
     this.loadSubmittedReports();
+    this.checkSubscriptionSetup();
 
     this.pollingInterval = setInterval(() => {
       this.loadDrafts();
@@ -164,6 +173,34 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   // ── WebSocket handlers ────────────────────────────────────────────────────────
+
+  checkSubscriptionSetup() {
+    this.subService.getTimelines().subscribe({
+      next: (data) => {
+        const hasAccess = data.some(t => t.accessible);
+        if (!hasAccess) {
+          this.allTimelines.set(data);
+          this.needsTimelineSetup.set(true);
+        }
+      }
+    });
+  }
+
+  selectInitialTimeline(timelineId: number) {
+    this.setupLoading.set(true);
+    this.setupError.set('');
+    this.subService.addTimeline(timelineId).subscribe({
+      next: () => {
+        this.needsTimelineSetup.set(false);
+        this.setupLoading.set(false);
+        this.loadTimelines(); // refresh report form dropdown
+      },
+      error: (err: any) => {
+        this.setupError.set(err?.error?.message || 'Failed to set timeline.');
+        this.setupLoading.set(false);
+      }
+    });
+  }
 
   private handleAnalysisResult(body: string) {
     try {

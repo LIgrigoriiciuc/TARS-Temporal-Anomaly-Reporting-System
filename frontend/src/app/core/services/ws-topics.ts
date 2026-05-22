@@ -1,22 +1,16 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// WebSocket topic constants
-// Keep in sync with server-side pushes (see service-layer comments in Spring).
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const WS_TOPICS = {
-  /** UC-08: pushed by GeminiService after AI analysis completes.
-   *  Payload: SubmittedReportResponseDTO */
+  /** UC-08: AI analysis complete. Payload: SubmittedReportResponseDTO */
   analysisResult: (agentId: string) => `/topic/analysis/${agentId}`,
 
-  /** Pushed by AdminService when an agent account is deactivated.
-   *  Payload: "TERMINATED" string */
+  /** Account deactivated by supervisor. Payload: "TERMINATED" */
   userDeactivated: (userId: string) => `/topic/user-deactivated/${userId}`,
 
-  /** UC-11: pushed by AlertService when a HIGH/CRITICAL anomaly alert is created.
-   *  Payload: AlertDTO */
+  /** UC-11: HIGH/CRITICAL anomaly alert created. Payload: AlertDTO */
   alertsNew: '/topic/alerts',
 
-  /** UC-11: pushed by AlertService when an alert is acknowledged.
-   *  Payload: alert id (number) */
+  /** UC-11: Alert acknowledged. Payload: alert id (number) */
   alertsAcknowledged: '/topic/alerts/acknowledged',
+
+  /** UC-12: Stripe webhook fired, subscription activated. Payload: SubscriptionDTO */
+  subscriptionUpdated: (agentId: string) => `/topic/subscription/${agentId}`,
 } as const;
