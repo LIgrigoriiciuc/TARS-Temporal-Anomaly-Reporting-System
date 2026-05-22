@@ -23,10 +23,9 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    // -------------------------------------------------------------------------
-    // UC-05 Submit new report
-    // -------------------------------------------------------------------------
-
+    // WebSocket push: /topic/analysis/{agentId}
+// Payload: SubmittedReportResponseDTO (same as GET /submitted/{id})
+// Triggered by: UC-08 after AI analysis completes
     @PostMapping("/submit")
     public ResponseEntity<SubmittedReportResponseDTO> submitReport(
             @Valid @RequestBody SubmitReportRequestDTO dto,

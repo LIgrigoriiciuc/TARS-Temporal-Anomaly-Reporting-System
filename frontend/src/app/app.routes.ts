@@ -1,6 +1,6 @@
-import {Router, Routes} from '@angular/router';
+import { Router, Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
-import {inject} from '@angular/core';
+import { inject } from '@angular/core';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -10,12 +10,24 @@ export const routes: Routes = [
     canActivate: [() => {
       const role = localStorage.getItem('role');
       if (role === 'Supervisor') { inject(Router).navigate(['/supervisor']); return false; }
-      if (role === 'Agent') { inject(Router).navigate(['/agent']); return false; }
+      if (role === 'Agent')      { inject(Router).navigate(['/agent']);      return false; }
       return true;
     }]
   },
-  { path: 'supervisor', loadComponent: () => import('./features/supervisor/dashboard/dashboard').then(m => m.Dashboard), canActivate: [authGuard] },
-  { path: 'agent', loadComponent: () => import('./features/agent/dashboard/dashboard').then(m => m.Dashboard), canActivate: [authGuard] },
-  { path: '**', redirectTo: 'login' }, // 👈 întotdeauna ultimul
+  {
+    path: 'supervisor',
+    loadComponent: () => import('./features/supervisor/dashboard/dashboard').then(m => m.Dashboard),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'agent',
+    loadComponent: () => import('./features/agent/dashboard/dashboard').then(m => m.Dashboard),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'graph',
+    loadComponent: () => import('./features/graph/graph').then(m => m.GraphPage),
+    canActivate: [authGuard]
+  },
+  { path: '**', redirectTo: 'login' }, // always last
 ];
-

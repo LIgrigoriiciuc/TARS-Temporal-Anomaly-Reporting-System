@@ -1,0 +1,226 @@
+<!-- GRAPH PAGE -->
+<app-sidebar [role]="role"></app-sidebar>
+
+<!-- Top Navigation -->
+<header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
+  <span class="text-base font-black tracking-tight uppercase">TARS | TIMELINE_GRAPH</span>
+  <span class="text-[9px] font-bold font-mono opacity-70">UC-09 // ANOMALY_VISUALIZATION</span>
+</header>
+
+<main class="ml-44 p-4 mb-12">
+
+  <!-- ── Filters ──────────────────────────────────────────────────────────────── -->
+  <div class="beveled-outset mb-4">
+    <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+      <span class="text-[10px] font-black uppercase">Filter_Parameters</span>
+      <button (click)="clearFilters()" class="button-90s text-[9px]">RESET</button>
+    </div>
+
+    <div class="p-4 bg-[#d1d5db] grid grid-cols-2 md:grid-cols-4 gap-3">
+
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-black uppercase tracking-widest">Timeline</label>
+        <div class="beveled-inset">
+          <select [(ngModel)]="filters.timelineId"
+                  class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none">
+            <option [value]="null">ALL_TIMELINES</option>
+            @for (t of timelines(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-black uppercase tracking-widest">Paradox_Risk</label>
+        <div class="beveled-inset">
+          <select [(ngModel)]="filters.paradoxRisk"
+                  class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none">
+            <option [value]="null">ALL_LEVELS</option>
+            @for (r of paradoxRiskOptions; track r) {
+              <option [value]="r">{{ r }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-black uppercase tracking-widest">Year_From</label>
+        <div class="beveled-inset">
+          <input [(ngModel)]="filters.yearFrom" type="number" placeholder="-2000"
+                 class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none"/>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-black uppercase tracking-widest">Year_To</label>
+        <div class="beveled-inset">
+          <input [(ngModel)]="filters.yearTo" type="number" placeholder="2000"
+                 class="w-full bg-transparent px-2 py-1.5 text-xs font-mono text-primary focus:outline-none"/>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="px-4 pb-4 bg-[#d1d5db]">
+      <button (click)="applyFilters()" class="button-90s-primary button-90s px-6 py-1.5">
+        APPLY_FILTERS
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Graph ──────────────────────────────────────────────────────────────── -->
+  <div class="beveled-outset overflow-hidden">
+
+    <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 flex justify-between items-center">
+      <span class="text-[10px] font-black uppercase">Anomaly_Distribution // Temporal_Map</span>
+      <div class="flex items-center gap-4">
+        <!-- Legend -->
+        <div class="flex items-center gap-3">
+          @for (r of paradoxRiskOptions; track r) {
+            <span class="flex items-center gap-1 text-[9px] font-mono font-bold uppercase">
+              <span class="w-2 h-2 inline-block border border-gray-500"
+                    [style.background]="dotFill(r)">
+              </span>
+              {{ r }}
+            </span>
+          }
+        </div>
+        <span class="beveled-inset px-2 py-0.5 text-[9px] font-mono text-primary/60">
+          ANOMALIES: {{ anomalies().length }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="bg-white p-8 flex items-center justify-center">
+        <p class="text-[10px] font-black uppercase animate-pulse text-primary/60">⟳ LOADING_DATA...</p>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="bg-white p-4">
+        <div class="beveled-inset px-3 py-2">
+          <p class="text-[10px] font-bold font-mono">! ERROR: {{ error() }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Empty -->
+    @if (!loading() && !error() && anomalies().length === 0) {
+      <div class="bg-white p-8 flex items-center justify-center">
+        <div class="beveled-inset p-6 text-center">
+          <p class="text-[10px] font-black uppercase opacity-50">NO_ANOMALIES_FOUND</p>
+          <p class="text-[9px] font-mono text-primary/40 mt-1">Adjust filters or await confirmed reports.</p>
+        </div>
+      </div>
+    }
+
+    <!-- SVG -->
+    @if (!loading() && !error() && anomalies().length > 0) {
+      <div class="bg-white overflow-x-auto relative graph-wrap" #graphContainer>
+        <svg
+          [attr.width]="svgWidth()"
+          [attr.height]="svgHeight()"
+          style="display: block;"
+          (mouseleave)="onDotLeave()">
+
+          <!-- Lane backgrounds -->
+          @for (t of visibleTimelines(); track t.id; let i = $index) {
+            <rect
+              x="0" [attr.y]="HEADER_HEIGHT + i * LANE_HEIGHT"
+              [attr.width]="svgWidth()" [attr.height]="LANE_HEIGHT"
+              [attr.fill]="i % 2 === 0 ? '#f9fafb' : '#ffffff'"
+            />
+            <line
+              x1="0" [attr.y1]="HEADER_HEIGHT + (i + 1) * LANE_HEIGHT"
+              [attr.x2]="svgWidth()" [attr.y2]="HEADER_HEIGHT + (i + 1) * LANE_HEIGHT"
+              stroke="#e5e7eb" stroke-width="1"
+            />
+          }
+
+          <!-- X tick lines + labels -->
+          @for (tick of xTicks(); track tick) {
+            <line
+              [attr.x1]="xForYear(tick)" [attr.y1]="HEADER_HEIGHT - 4"
+              [attr.x2]="xForYear(tick)" [attr.y2]="svgHeight() - 8"
+              stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3,3"
+            />
+            <text
+              [attr.x]="xForYear(tick)" [attr.y]="HEADER_HEIGHT - 10"
+              text-anchor="middle" font-size="9" font-family="monospace" fill="#6b7280">
+              {{ tick }}
+            </text>
+          }
+
+          <!-- Axes -->
+          <line
+            [attr.x1]="Y_LABEL_WIDTH" [attr.y1]="HEADER_HEIGHT"
+            [attr.x2]="svgWidth()" [attr.y2]="HEADER_HEIGHT"
+            stroke="#9ca3af" stroke-width="1.5"
+          />
+          <line
+            [attr.x1]="Y_LABEL_WIDTH" [attr.y1]="HEADER_HEIGHT"
+            [attr.x2]="Y_LABEL_WIDTH" [attr.y2]="svgHeight() - 8"
+            stroke="#9ca3af" stroke-width="1.5"
+          />
+
+          <!-- Timeline name labels -->
+          @for (t of visibleTimelines(); track t.id; let i = $index) {
+            <text
+              [attr.x]="Y_LABEL_WIDTH - 6"
+              [attr.y]="HEADER_HEIGHT + i * LANE_HEIGHT + LANE_HEIGHT / 2 + 3"
+              text-anchor="end" font-size="9" font-weight="700"
+              font-family="monospace" fill="#374151">
+              {{ t.name }}
+            </text>
+          }
+
+          <!-- Dots -->
+          @for (a of anomalies(); track a.id) {
+            <circle
+              [attr.cx]="xForYear(a.year)"
+              [attr.cy]="yForTimeline(a.timelineId)"
+              [attr.r]="DOT_RADIUS"
+              [attr.fill]="dotFill(a.paradoxRisk)"
+              [attr.stroke]="dotStroke(a.paradoxRisk)"
+              stroke-width="1"
+              style="cursor: crosshair;"
+              (mouseenter)="onDotHover($event, a)"
+              (mouseleave)="onDotLeave()"
+            />
+          }
+
+        </svg>
+
+        <!-- Hover tooltip -->
+        @if (hoveredAnomaly) {
+          <div class="absolute pointer-events-none beveled-outset px-3 py-2 z-10"
+               [style.left.px]="tooltipX"
+               [style.top.px]="tooltipY">
+            <p class="text-[9px] font-black uppercase mb-1">ID_{{ hoveredAnomaly.id }}</p>
+            <p class="text-[9px] font-mono text-primary/70">Year: {{ hoveredAnomaly.year }}</p>
+            <p class="text-[9px] font-mono text-primary/70">Type: {{ hoveredAnomaly.type || 'N/A' }}</p>
+            <p class="text-[9px] font-mono text-primary/70">Risk: {{ hoveredAnomaly.paradoxRisk }}</p>
+            <p class="text-[9px] font-mono text-primary/70">Timeline: {{ hoveredAnomaly.timelineName }}</p>
+          </div>
+        }
+
+      </div>
+    }
+
+  </div>
+
+</main>
+
+<!-- Status bar -->
+<footer class="fixed bottom-0 left-0 w-full h-10 flex items-center px-4 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary gap-6">
+  <span class="flex items-center gap-2">
+    <span class="w-3 h-3 bg-green-500 border border-green-900"></span>
+    SYSTEM: ONLINE
+  </span>
+  <span class="opacity-50">UTC SYNC: ACTIVE</span>
+  <span class="opacity-50">BUILD_94.08.12</span>
+</footer>

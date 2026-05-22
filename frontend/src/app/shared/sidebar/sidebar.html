@@ -1,0 +1,65 @@
+<!-- Shared sidebar for Agent and Supervisor -->
+<nav class="fixed top-12 left-0 h-[calc(100vh-3rem)] w-44 bg-[#d1d5db] border-r-2 border-r-[#4b5563] border-t-[#f3f4f6] flex flex-col z-40">
+
+  <div class="px-3 py-2 border-b border-gray-400">
+    <p class="text-[9px] font-black uppercase tracking-widest text-primary/50">
+      {{ role === 'supervisor' ? 'SUPERVISOR' : 'FIELD_AGENT' }}
+    </p>
+  </div>
+
+  <div class="flex flex-col gap-0.5 p-2 flex-1">
+
+    @if (role === 'agent') {
+      <a routerLink="/agent" routerLinkActive="bg-primary text-white" [routerLinkActiveOptions]="{exact:true}"
+         class="sidebar-item">
+        <span class="sidebar-icon">▣</span> FIELD_OPS
+      </a>
+    }
+
+    @if (role === 'supervisor') {
+      <a routerLink="/supervisor" routerLinkActive="bg-primary text-white" [routerLinkActiveOptions]="{exact:true}"
+         class="sidebar-item">
+        <span class="sidebar-icon">▣</span> PERSONNEL
+      </a>
+    }
+
+    <a routerLink="/graph" routerLinkActive="bg-primary text-white"
+       class="sidebar-item">
+      <span class="sidebar-icon">◈</span> TIMELINE_GRAPH
+    </a>
+
+  </div>
+
+  <div class="px-3 py-2 border-t border-gray-400">
+    <p class="text-[9px] font-mono text-primary/30 uppercase">BUILD_94.08.12</p>
+  </div>
+
+</nav>
+
+<style>
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #0c4a6e;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .sidebar-item:hover {
+    background: #b3cde0;
+  }
+  .sidebar-item.active,
+  .sidebar-item.bg-primary {
+    background: #0c4a6e;
+    color: white;
+  }
+  .sidebar-icon {
+    font-size: 10px;
+    opacity: 0.6;
+  }
+</style>
