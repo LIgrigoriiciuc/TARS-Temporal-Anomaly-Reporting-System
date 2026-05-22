@@ -25,6 +25,7 @@ public class ReportService {
     private final AnomalyAnalysisRepository analysisRepository;
     private final GeminiService geminiService;
     private final SubscriptionService subscriptionService;
+    private final TimelineAccessService timelineAccessService;
 
     // -------------------------------------------------------------------------
     // UC-05 Submit Report
@@ -42,6 +43,9 @@ public class ReportService {
 
         // Plan enforcement — check monthly report limit
         subscriptionService.enforceReportLimit(agent);
+
+        // Timeline access enforcement
+        timelineAccessService.enforceTimelineAccess(agent, timelineId);
 
         // Duplicate check — same agent, same timeline, same year
         List<ObservationReport> duplicates = reportRepository.findDuplicateReport(

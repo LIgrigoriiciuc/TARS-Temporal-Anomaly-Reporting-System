@@ -27,6 +27,7 @@ import java.time.LocalDate;
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
+    private final TimelineAccessService timelineAccessService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${stripe.api.key}")
@@ -130,6 +131,7 @@ public class SubscriptionService {
 
         subscriptionRepository.save(subscription);
         log.info("SubscriptionService: plan activated for agent {} → {}", agentId, plan);
+        timelineAccessService.onUpgrade(subscription.getAgent(), plan);
 
         // Push to agent's browser so frontend updates immediately without polling
         try {
@@ -190,6 +192,7 @@ public class SubscriptionService {
             sub.setCancellationScheduled(false);
             sub.setStripeSubscriptionId(null);
             subscriptionRepository.save(sub);
+            timelineAccessService.onDowngradeToFree(sub.getAgent());
             log.info("SubscriptionService: agent {} reverted to FREE", sub.getAgent().getId());
         });
     }
