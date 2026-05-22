@@ -11,6 +11,7 @@ import com.tars.model.enums.BillingCycle;
 import com.tars.model.enums.PlanType;
 import com.tars.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ import java.time.LocalDate;
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
@@ -128,6 +130,16 @@ public class SubscriptionService {
 
         subscriptionRepository.save(subscription);
         log.info("SubscriptionService: plan activated for agent {} → {}", agentId, plan);
+
+        // Push to agent's browser so frontend updates immediately without polling
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/subscription/" + agentId,
+                    getSubscriptionInfo(subscription.getAgent())
+            );
+        } catch (Exception e) {
+            log.warn("SubscriptionService: WebSocket push failed for agent {}: {}", agentId, e.getMessage());
+        }
     }
 
     /**

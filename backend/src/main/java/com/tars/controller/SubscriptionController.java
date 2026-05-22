@@ -48,9 +48,13 @@ public class SubscriptionController {
     @PostMapping("/cancel")
     public ResponseEntity<Map<String, String>> cancel(HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
+        // Get expiry date before cancelling so we can show it in the message
+        String expiryDate = subscriptionService.getOrCreateFreeSubscription(agent)
+                .getExpiryDate() != null
+                ? subscriptionService.getOrCreateFreeSubscription(agent).getExpiryDate().toString()
+                : "end of billing cycle";
         subscriptionService.cancelSubscription(agent);
         return ResponseEntity.ok(Map.of("message",
-                "Subscription cancelled. Access remains until " +
-                        subscriptionService.getOrCreateFreeSubscription(agent).getExpiryDate()));
+                "Subscription cancelled. Access remains until " + expiryDate));
     }
 }

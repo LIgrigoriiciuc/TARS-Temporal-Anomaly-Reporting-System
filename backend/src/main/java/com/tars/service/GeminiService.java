@@ -33,6 +33,7 @@ public class GeminiService {
 
     private final ReportRepository reportRepository;
     private final AnomalyAnalysisRepository analysisRepository;
+    private final com.tars.repository.SubscriptionRepository subscriptionRepository;
     private final AnomalyRepository anomalyRepository;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
@@ -58,15 +59,19 @@ public class GeminiService {
         analysis = analysisRepository.save(analysis);
 
         try {
+            // NFR-11 — ENTERPRISE gets priority processing
+            boolean isEnterprise = isEnterpriseAgent(report.getAgent());
+            log.info("GeminiService: {} queue for report {}", isEnterprise ? "priority" : "standard", reportId);
+
             List<ObservationReport> historicalReports = fetchHistoricalContext(report);
-            String prompt = buildPrompt(report, historicalReports);
+            String prompt = buildPrompt(report, historicalReports, isEnterprise);
             String rawResponse = callGemini(prompt);
 
             log.info("GeminiService: raw response for report {}: {}", reportId, rawResponse);
             JsonNode parsed = parseGeminiResponse(rawResponse);
             if (parsed == null) {
                 log.warn("GeminiService: first parse failed for report {}, retrying", reportId);
-                String retryResponse = callGemini(buildStrictPrompt(report, historicalReports));
+                String retryResponse = callGemini(buildStrictPrompt(report, historicalReports, isEnterprise));
                 log.info("GeminiService: retry response for report {}: {}", reportId, retryResponse);
                 parsed = parseGeminiResponse(retryResponse);
             }
@@ -237,7 +242,7 @@ public class GeminiService {
         );
     }
 
-    private String buildPrompt(ObservationReport report, List<ObservationReport> historical) {
+    private String buildPrompt(ObservationReport report, List<ObservationReport> historical, boolean priority) {
         StringBuilder sb = new StringBuilder();
         sb.append("""
                 You are a temporal anomaly analyst for the TARS system (Temporal Anomaly Reporting System).
@@ -252,15 +257,14 @@ public class GeminiService {
                 - LOP: Temporal loop — sequence of events repeats indefinitely
                 
                 Paradox risk levels: LOW, MEDIUM, HIGH, CRITICAL
-                
-                """);
+                """ + (priority ? "PRIORITY: High-priority analysis request.\n\n" : "\n"));
 
         sb.append("NEW OBSERVATION REPORT:\n");
         sb.append("Report ID: ").append(report.getId()).append("\n");
         sb.append("Timeline: ").append(report.getTimeline() != null ? report.getTimeline().getName() : "unknown").append("\n");
         sb.append("Year: ").append(report.getYear()).append("\n");
-        sb.append("Keywords: ").append(report.getKeywords()).append("\n");
-        sb.append("Description: ").append(report.getDescription()).append("\n\n");
+        sb.append("Keywords: ").append(sanitize(report.getKeywords())).append("\n");
+        sb.append("Description: ").append(sanitize(report.getDescription())).append("\n\n");
 
         if (!historical.isEmpty()) {
             sb.append("HISTORICAL CONTEXT (reports from other agents on the same timeline and period):\n");
@@ -268,8 +272,8 @@ public class GeminiService {
                 sb.append("- Report ID ").append(h.getId())
                         .append(" | Year: ").append(h.getYear())
                         .append(" | Status: ").append(h.getStatus())
-                        .append(" | Keywords: ").append(h.getKeywords())
-                        .append(" | Description: ").append(h.getDescription())
+                        .append(" | Keywords: ").append(sanitize(h.getKeywords()))
+                        .append(" | Description: ").append(sanitize(h.getDescription()))
                         .append("\n");
             }
             sb.append("\n");
@@ -292,8 +296,8 @@ public class GeminiService {
         return sb.toString();
     }
 
-    private String buildStrictPrompt(ObservationReport report, List<ObservationReport> historical) {
-        return buildPrompt(report, historical) +
+    private String buildStrictPrompt(ObservationReport report, List<ObservationReport> historical, boolean priority) {
+        return buildPrompt(report, historical, priority) +
                 "\nCRITICAL: Your response must start with { and end with }. No other characters outside the JSON object.";
     }
 
@@ -316,6 +320,12 @@ public class GeminiService {
             log.warn("GeminiService: JSON parse failed: {}", e.getMessage());
             return null;
         }
+    }
+
+    private boolean isEnterpriseAgent(com.tars.model.Agent agent) {
+        return subscriptionRepository.findByAgentId(agent.getId())
+                .map(s -> s.getPlan() == com.tars.model.enums.PlanType.ENTERPRISE)
+                .orElse(false);
     }
 
     private void pushToAgent(ObservationReport report) {
@@ -347,6 +357,25 @@ public class GeminiService {
                 .filter(s -> !s.isEmpty())
                 .map(Long::parseLong)
                 .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    /**
+     * NFR-12 — sanitizes free-text fields before injecting into Gemini prompt.
+     * Strips prompt injection attempts like "ignore previous instructions".
+     */
+    private String sanitize(String input) {
+        if (input == null) return "N/A";
+        return input
+                // Remove common prompt injection patterns
+                .replaceAll("(?i)ignore (previous|above|all) instructions.*", "[REDACTED]")
+                .replaceAll("(?i)you are now.*", "[REDACTED]")
+                .replaceAll("(?i)disregard.*instructions.*", "[REDACTED]")
+                // Strip special characters that could break JSON structure
+                .replace("\\", "")
+                .replace("```", "")
+                // Limit length to prevent token stuffing
+                .substring(0, Math.min(input.length(), 1000))
+                .trim();
     }
 
     private <T extends Enum<T>> T parseEnum(Class<T> enumClass, String value) {
