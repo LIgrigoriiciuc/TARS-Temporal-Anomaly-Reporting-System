@@ -1,0 +1,50 @@
+<!-- Alert toast stack — bottom left, above status bar -->
+@if (alerts().length > 0) {
+  <div class="fixed bottom-12 left-48 z-50 flex flex-col gap-2 p-3 max-w-[320px]">
+
+    @for (alert of alerts(); track alert.id) {
+      <div class="beveled-outset overflow-hidden">
+
+        <!-- Header -->
+        <div class="bg-gray-300 px-3 py-1.5 border-b border-gray-400 flex justify-between items-center">
+          <span class="text-[9px] font-black uppercase tracking-widest">
+            ! ALERT_{{ alert.id }}
+          </span>
+          <span class="beveled-inset px-1.5 py-0.5 text-[9px] font-mono font-bold">
+            {{ alert.paradoxRisk }}
+          </span>
+        </div>
+
+        <!-- Body -->
+        <div class="px-3 py-2 bg-[#d1d5db] flex flex-col gap-1">
+          <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+            <div>
+              <p class="text-[8px] uppercase font-bold text-primary/40">Timeline</p>
+              <p class="text-[10px] font-mono font-bold">{{ alert.timelineName || 'N/A' }}</p>
+            </div>
+            <div>
+              <p class="text-[8px] uppercase font-bold text-primary/40">Year</p>
+              <p class="text-[10px] font-mono font-bold">{{ alert.year ?? 'N/A' }}</p>
+            </div>
+            <div>
+              <p class="text-[8px] uppercase font-bold text-primary/40">Type</p>
+              <p class="text-[10px] font-mono font-bold">{{ alert.anomalyType || 'N/A' }}</p>
+            </div>
+            <div>
+              <p class="text-[8px] uppercase font-bold text-primary/40">Anomaly ID</p>
+              <p class="text-[10px] font-mono font-bold">#{{ alert.anomalyId }}</p>
+            </div>
+          </div>
+
+          <button
+            (click)="acknowledge(alert)"
+            class="button-90s w-full justify-center py-1 mt-1 text-[9px]">
+            ACKNOWLEDGE
+          </button>
+        </div>
+
+      </div>
+    }
+
+  </div>
+}

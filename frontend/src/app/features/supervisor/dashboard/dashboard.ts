@@ -4,19 +4,21 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth';
 import { UserService } from '../../../core/services/user';
+import { WebSocketService } from '../../../core/services/websocket';
+import { WS_TOPICS } from '../../../core/services/ws-topics';
 import { Sidebar } from '../../../shared/sidebar/sidebar';
+import { AlertToasts } from '../../../shared/alert-toasts/alert-toasts';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar],
+  imports: [CommonModule, FormsModule, Sidebar, AlertToasts],
   templateUrl: './dashboard.html'
 })
 export class Dashboard implements OnInit, OnDestroy {
-  users         = signal<any[]>([]);
-  currentTime   = signal('');
-  createError   = signal('');
-  isCreating    = signal(false);
+  users           = signal<any[]>([]);
+  currentTime     = signal('');
+  createError     = signal('');
   deactivateError = signal('');
   newUser = { name: '', email: '', password: '', role: 'AGENT' };
   private pollingInterval: any = null;
@@ -24,7 +26,8 @@ export class Dashboard implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private userService: UserService,
-    private router: Router,
+    private wsService  : WebSocketService,
+    private router     : Router,
   ) {}
 
   ngOnInit() {
@@ -32,6 +35,10 @@ export class Dashboard implements OnInit, OnDestroy {
     this.updateTime();
     setInterval(() => this.updateTime(), 1000);
     this.pollingInterval = setInterval(() => this.loadUsers(), 5000);
+
+    // WS connection needed for alert toasts (AlertToasts subscribes on its own,
+    // but the connection itself must be opened here)
+    this.wsService.connect();
   }
 
   ngOnDestroy() {
@@ -45,7 +52,7 @@ export class Dashboard implements OnInit, OnDestroy {
   loadUsers() {
     this.userService.getAllUsers().subscribe({
       next: (data) => {
-        const sorted = data.sort((a: any, b: any) => a.id - b.id);
+        const sorted   = data.sort((a: any, b: any) => a.id - b.id);
         const current  = JSON.stringify(this.users());
         const incoming = JSON.stringify(sorted);
         if (current !== incoming) this.users.set(sorted);
@@ -61,7 +68,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.newUser = { name: '', email: '', password: '', role: 'AGENT' };
 
     this.userService.createUser(payload).subscribe({
-      next: () => this.loadUsers(),
+      next : () => this.loadUsers(),
       error: (err) => {
         this.newUser = payload;
         if (err.status === 409) {
@@ -94,6 +101,10 @@ export class Dashboard implements OnInit, OnDestroy {
 
   logout() {
     clearInterval(this.pollingInterval);
-    this.authService.logout().subscribe();
+    this.wsService.disconnect();
+    this.authService.logout().subscribe({
+      next : () => window.location.href = '/login',
+      error: () => window.location.href = '/login'
+    });
   }
 }

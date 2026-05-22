@@ -73,6 +73,8 @@ public class AlertService {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alert not found"));
         alert.setAcknowledged(true);
+        Alert saved = alertRepository.save(alert);
+        messagingTemplate.convertAndSend("/topic/alerts/acknowledged", alertId);
         return AlertMapper.toDto(alertRepository.save(alert));
     }
 }
