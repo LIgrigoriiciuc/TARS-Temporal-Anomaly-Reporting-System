@@ -146,9 +146,12 @@ public class GeminiService {
                     }
                 }
             } else {
-                // New anomaly — always starts unverified (single observer so far)
+                // New anomaly — verified immediately if contributing IDs span 2+ distinct agents
                 String foundingIds = report.getId() +
                         (contributingIds.isBlank() ? "" : "," + contributingIds);
+
+                boolean verifiedAtBirth = !contributingSet.isEmpty()
+                        && isNewAgent(foundingIds, report.getAgent().getId());
 
                 Anomaly newAnomaly = Anomaly.builder()
                         .type(type)
@@ -156,11 +159,12 @@ public class GeminiService {
                         .timeline(report.getTimeline())
                         .year(report.getYear())
                         .contributingReportIds(foundingIds)
-                        .verified(false)
+                        .verified(verifiedAtBirth)
                         .build();
                 anomalyRepository.save(newAnomaly);
                 analysis.setAnomaly(newAnomaly);
-                log.info("GeminiService: new unverified anomaly created for report {}", report.getId());
+                log.info("GeminiService: new anomaly created for report {} verified={}",
+                        report.getId(), verifiedAtBirth);
                 alertService.triggerIfCritical(newAnomaly);
             }
 
