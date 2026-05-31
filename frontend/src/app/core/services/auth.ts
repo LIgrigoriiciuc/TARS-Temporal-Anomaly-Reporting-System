@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -24,6 +24,12 @@ export class AuthService {
       tap(() => {
         localStorage.clear();
         this.router.navigate(['/login']);
+      }),
+      // UC-02 E2 — network error: server unreachable, force local cleanup anyway
+      catchError(() => {
+        localStorage.clear();
+        this.router.navigate(['/login']);
+        return of(null);
       })
     );
   }

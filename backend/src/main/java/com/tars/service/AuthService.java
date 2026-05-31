@@ -33,9 +33,9 @@ public class AuthService {
     public LoginResponseDTO login(LoginRequestDTO dto, HttpServletResponse response) {
         // Step 1: load user from DB
         User user = userRepository.findByEmail(dto.getEmail()).orElseThrow(() -> {
-                    log.warn("LOGIN_FAILURE | user={} | reason=User not found", dto.getEmail());
-                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-                });
+            log.warn("LOGIN_FAILURE | user={} | reason=User not found", dto.getEmail());
+            return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        });
         // Step 2: verify password with BCrypt
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             log.warn("LOGIN_FAILURE | user={} | reason=Bad credentials", dto.getEmail());
@@ -75,10 +75,17 @@ public class AuthService {
         String jwt = extractJwtFromCookies(request);
         String email = "unknown";
         if (jwt != null) {
-            Date expirationDate = jwtUtils.getExpirationDateFromToken(jwt);
-            long timeLeftMs = expirationDate.getTime() - System.currentTimeMillis();
-            if (timeLeftMs > 0) {
-                tokenDenylistService.blacklistToken(jwt, timeLeftMs);
+            try {
+                Date expirationDate = jwtUtils.getExpirationDateFromToken(jwt);
+                long timeLeftMs = expirationDate.getTime() - System.currentTimeMillis();
+                if (timeLeftMs > 0) {
+                    tokenDenylistService.blacklistToken(jwt, timeLeftMs);
+                }
+            } catch (Exception e) {
+                // UC-02 E1 — Redis unreachable: token cannot be blacklisted server-side,
+                // but cookie is still cleared below so the browser session ends.
+                // Token remains valid until natural expiry.
+                log.error("DENYLIST_FAILURE | token could not be blacklisted | {}", e.getMessage());
             }
         }
         log.info("LOGOUT | user={}", email);

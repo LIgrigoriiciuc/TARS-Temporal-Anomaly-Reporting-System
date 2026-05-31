@@ -3,6 +3,7 @@ package com.tars.service;
 import com.tars.model.Agent;
 import com.tars.model.ObservationReport;
 import com.tars.model.Timeline;
+import com.tars.model.enums.PlanType;
 import com.tars.model.enums.ReportStatus;
 import com.tars.repository.AnomalyAnalysisRepository;
 import com.tars.repository.ReportRepository;
@@ -11,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.tars.model.enums.ReportStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -65,9 +65,8 @@ public class ReportService {
         // Increment monthly report count
         agent.setMonthlyReportCount(agent.getMonthlyReportCount() + 1);
 
-        // Fire and forget — agent gets HTTP response immediately
-        // GeminiService.analyzeReport() runs in its own thread + transaction
-        geminiService.analyzeReport(saved.getId());
+        // NFR-11 — ENTERPRISE routed to priority executor, others to standard
+        dispatchAnalysis(saved.getId(), agent);
 
         return saved;
     }
@@ -91,9 +90,25 @@ public class ReportService {
         draft.setStatus(ReportStatus.PENDING_ANALYSIS);
 
         ObservationReport saved = reportRepository.save(draft);
-        geminiService.analyzeReport(saved.getId());
+
+        // NFR-11 — ENTERPRISE routed to priority executor, others to standard
+        dispatchAnalysis(saved.getId(), draft.getAgent());
 
         return saved;
+    }
+
+    /**
+     * Routes analysis to the appropriate thread pool based on the agent's plan.
+     * ENTERPRISE → priorityExecutor (4–8 threads)
+     * FREE / PRO  → standardExecutor (2–4 threads)
+     */
+    private void dispatchAnalysis(Long reportId, Agent agent) {
+        PlanType plan = subscriptionService.getOrCreateFreeSubscription(agent).getPlan();
+        if (plan == PlanType.ENTERPRISE) {
+            geminiService.analyzeReportPriority(reportId);
+        } else {
+            geminiService.analyzeReport(reportId);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -125,7 +140,7 @@ public class ReportService {
     }
 
     // -------------------------------------------------------------------------
-    // UC-06 Draft management (unchanged from iteration 1)
+    // UC-06 Draft management
     // -------------------------------------------------------------------------
 
     @Transactional

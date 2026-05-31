@@ -167,7 +167,11 @@ export class Dashboard implements OnInit, OnDestroy {
         this.activeTab = 'submitted';
       },
       error: (err: any) => {
-        this.submitError.set(err?.error?.message || 'Submission failed. Try again.');
+        if (err.status === 429) {
+          this.submitError.set('Monthly report limit reached. Upgrade your plan.');
+        } else {
+          this.submitError.set(err?.error?.message || 'Submission failed. Try again.');
+        }
       }
     });
   }

@@ -42,9 +42,20 @@ public class GeminiService {
     private static final int YEAR_WINDOW = 50;
     private static final double OVERLAP_THRESHOLD = 0.75;
 
-    @Async
+    // NFR-11 — ENTERPRISE agents routed to dedicated higher-capacity thread pool
+    @Async("priorityExecutor")
+    @Transactional
+    public void analyzeReportPriority(Long reportId) {
+        doAnalyze(reportId);
+    }
+
+    @Async("standardExecutor")
     @Transactional
     public void analyzeReport(Long reportId) {
+        doAnalyze(reportId);
+    }
+
+    private void doAnalyze(Long reportId) {
         ObservationReport report = reportRepository.findById(reportId).orElse(null);
         if (report == null) {
             log.error("GeminiService: report {} not found", reportId);
@@ -58,7 +69,6 @@ public class GeminiService {
         analysis = analysisRepository.save(analysis);
 
         try {
-            // NFR-11 — ENTERPRISE gets priority processing
             boolean isEnterprise = isEnterpriseAgent(report.getAgent());
             log.info("GeminiService: {} queue for report {}", isEnterprise ? "priority" : "standard", reportId);
 
@@ -101,9 +111,6 @@ public class GeminiService {
                                          ObservationReport report,
                                          List<ObservationReport> historicalReports) {
 
-        // --- Injection check first — before any analysis processing ---
-        // Gemini flags this when the description or keywords appear to contain
-        // directives aimed at the model rather than legitimate observational data.
         boolean injectionDetected = parsed.path("injectionDetected").asBoolean(false);
         if (injectionDetected) {
             log.warn("GeminiService: prompt injection detected in report {}, quarantining", report.getId());
@@ -114,18 +121,16 @@ public class GeminiService {
             report.setStatus(ReportStatus.FLAGGED);
             reportRepository.save(report);
             pushToAgent(report);
-            return; // exit — no anomaly linking, no corroboration, no type/risk assignment
+            return;
         }
 
         boolean confirmed = parsed.path("confirmed").asBoolean(false);
         String explanation = parsed.path("explanation").asText("");
 
-        // What we sent to Gemini
         String correlatedIds = historicalReports.stream()
                 .map(r -> String.valueOf(r.getId()))
                 .collect(Collectors.joining(","));
 
-        // What Gemini picked as causal — never includes the submitting agent's own report
         Set<Long> contributingSet = extractIdSet(parsed, "contributingReportIds");
         contributingSet.remove(report.getId());
         String contributingIds = contributingSet.stream()
@@ -142,15 +147,12 @@ public class GeminiService {
             AnomalyType type = parseEnum(AnomalyType.class, parsed.path("type").asText());
             ParadoxRisk paradoxRisk = parseEnum(ParadoxRisk.class, parsed.path("paradoxRisk").asText());
 
-            // Check unverified anomalies first, then verified
             Anomaly anomaly = findOverlappingAnomaly(contributingSet, report.getTimeline().getId());
 
             if (anomaly != null) {
-                // Link to existing anomaly
                 log.info("GeminiService: report {} linked to anomaly {}", report.getId(), anomaly.getId());
                 analysis.setAnomaly(anomaly);
 
-                // Check if this new agent provides corroboration for an unverified anomaly
                 if (!anomaly.isVerified()) {
                     Long submittingAgentId = report.getAgent().getId();
                     boolean newAgent = isNewAgent(anomaly.getContributingReportIds(), submittingAgentId);
@@ -162,7 +164,6 @@ public class GeminiService {
                     }
                 }
             } else {
-                // New anomaly — verified immediately if contributing IDs span 2+ distinct agents
                 String foundingIds = report.getId() +
                         (contributingIds.isBlank() ? "" : "," + contributingIds);
 
@@ -194,16 +195,10 @@ public class GeminiService {
         pushToAgent(report);
     }
 
-    /**
-     * Checks if the submitting agent is different from all agents
-     * whose reports are in the founding contributing pool.
-     * If yes — this is genuine independent corroboration.
-     */
     private boolean isNewAgent(String foundingContributingIds, Long submittingAgentId) {
         Set<Long> foundingReportIds = parseIdSet(foundingContributingIds);
         if (foundingReportIds.isEmpty()) return true;
 
-        // Load the founding reports and collect their agent IDs
         Set<Long> foundingAgentIds = reportRepository.findAllById(foundingReportIds)
                 .stream()
                 .map(r -> r.getAgent().getId())
@@ -212,14 +207,9 @@ public class GeminiService {
         return !foundingAgentIds.contains(submittingAgentId);
     }
 
-    /**
-     * Checks all anomalies on this timeline (unverified first, then verified)
-     * for 75% overlap with the new contributing set.
-     */
     private Anomaly findOverlappingAnomaly(Set<Long> newContributing, Long timelineId) {
         if (newContributing.isEmpty()) return null;
 
-        // Unverified first (need corroboration more urgently), then verified
         List<Anomaly> all = anomalyRepository.findByTimelineId(timelineId);
         List<Anomaly> candidates = new ArrayList<>();
         all.stream().filter(a -> !a.isVerified()).forEach(candidates::add);
@@ -258,7 +248,7 @@ public class GeminiService {
                 report.getYear() - YEAR_WINDOW,
                 report.getYear() + YEAR_WINDOW,
                 keyword,
-                report.getAgent().getId() // exclude submitting agent
+                report.getAgent().getId()
         );
     }
 
@@ -337,7 +327,6 @@ public class GeminiService {
     private JsonNode parseGeminiResponse(String rawText) {
         try {
             String cleaned = rawText.trim();
-            // Strip ```json or ``` fences Gemini adds despite instructions
             if (cleaned.startsWith("```")) {
                 cleaned = cleaned.replaceFirst("```json\\s*", "").replaceFirst("```\\s*", "");
             }

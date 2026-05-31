@@ -31,7 +31,6 @@ export class Login {
     this.authService.login(this.email, this.password).subscribe({
       next: (response) => {
         this.isLoading = false;
-        document.cookie = 'jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         if (response.role === 'Supervisor') {
           this.router.navigate(['/supervisor']);
         } else {
@@ -44,6 +43,8 @@ export class Login {
           this.errorMessage.set('ACCOUNT_TERMINATED // Access denied');
         } else if (err.status === 401) {
           this.errorMessage.set('Invalid credentials');
+        } else if (err.status === 503) {
+          this.errorMessage.set('SYSTEM_UNAVAILABLE // Retry later');
         } else {
           this.errorMessage.set('Connection error');
         }
