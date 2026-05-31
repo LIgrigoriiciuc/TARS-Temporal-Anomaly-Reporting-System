@@ -59,7 +59,7 @@
 5. Angular `tap()` clears `localStorage` and navigates to `/login`.
 
 **Alternative Flows**
-- A1 Session Timeout: System detects inactivity and triggers the logout flow automatically.
+- A1 Session Expiry: After 8 hours the JWT cookie expires naturally; the next request is rejected and the user is redirected to the login screen.
 
 **Exceptions**
 - E1 Redis Connection Failure: `tokenDenylistService.blacklistToken()` throws; the exception is caught internally in `AuthService.logout()`, the error is logged as `DENYLIST_FAILURE`, and execution continues — the cookie is still cleared. Token remains valid server-side until natural expiry.
@@ -68,335 +68,316 @@
 ---
 
 ## UC-03: Create User Account
-
 | | |
 |---|---|
 | **Primary actors** | Supervisor |
-| **Secondary actors** | Database |
+| **Secondary actors** | Database, SMTP Server |
 | **Description** | Supervisor creates a new user account and assigns a role (Agent or Supervisor). Upon creation, the new user receives their login credentials by email. |
-| **Trigger** | Supervisor opens User Management and selects Add new user. |
+| **Trigger** | Supervisor fills in the New Personnel Entry form on the dashboard. |
 
 **Preconditions**
 - PRE-1. Supervisor is authenticated.
 - PRE-2. The email address to be assigned does not already exist in the system.
 
 **Postconditions**
-- POST-1. New account is saved to the database with the assigned role and Active status.
-- POST-2. Login credentials are sent to the new user's email address.
+- POST-1. New account is saved to the database with the assigned role and ACTIVE status.
+- POST-2. Login credentials are sent to the new user's email address asynchronously.
 
 **Normal Flow**
-1. TARS displays the user list with roles and statuses.
-2. Supervisor selects Add new user.
-3. TARS displays the creation form: username, email, role, temporary password.
-4. Supervisor fills in all fields and clicks Save.
-5. TARS validates all fields.
-6. TARS creates the account with status Active.
-7. TARS sends an email to the new user containing their login credentials.
+1. TARS displays the user list and the New Personnel Entry form with name, email, password, and role fields.
+2. Supervisor fills in all fields and clicks `ENLIST`.
+3. TARS validates all fields (`@Valid` on `UserRequestDTO`).
+4. TARS creates the account with status ACTIVE and saves it to the database.
+5. TARS asynchronously sends an email to the new user containing their login credentials.
+6. TARS reloads the user list, showing the new entry.
 
 **Alternative Flows**
-- A1 Validation Error: Supervisor leaves a required field empty or uses a duplicate email. TARS highlights the field and blocks the Save action until corrected.
-- A2 Required fields missing: TARS highlights empty fields and blocks saving.
+- A1 Validation Error: Supervisor submits with an empty field, invalid email format, or a password under 6 characters. Backend returns 400; TARS displays the relevant field error and does not create the account.
+- A2 Duplicate Email: Supervisor submits an email already registered in the system. Backend returns 409; TARS displays "Email already registered".
 
 **Exceptions**
-- E1 SMTP Server Down: Account is created in the DB, but the invitation email fails to send. System logs a "Critical Mail Error."
+- E1 SMTP Server Down: Account is created successfully in the database, but the credentials email fails to send. The error is caught silently, logged as `CRITICAL MAIL ERROR`, and account creation is not rolled back.
 
 ---
 
 ## UC-04: Deactivate User Account
-
 | | |
 |---|---|
 | **Primary actors** | Supervisor |
-| **Secondary actors** | Database |
-| **Description** | Supervisor deactivates an existing user account. The user can no longer log in, but all their anomaly reports and drafts are preserved in the system. |
-| **Trigger** | Supervisor selects a user in User Management and clicks Deactivate. |
+| **Secondary actors** | Database, Redis |
+| **Description** | Supervisor deactivates an existing user account. The user's active session is invalidated immediately and they can no longer log in, but all their data is preserved. |
+| **Trigger** | Supervisor clicks `TERMINATE_ACCESS` on a user row in the dashboard. |
 
 **Preconditions**
 - PRE-1. Supervisor is authenticated.
 - PRE-2. Target account exists in the system.
-- PRE-3. Target account is currently Active.
+- PRE-3. Target account status is ACTIVE.
 - PRE-4. Target account is not the Supervisor's own account.
 
 **Postconditions**
-- POST-1. Target account status is set to Inactive in the database.
-- POST-2. Any active JWT session for that user is invalidated immediately.
+- POST-1. Target account status is set to INACTIVE in the database.
+- POST-2. All active JWT tokens for that user are immediately invalidated via Redis denylist.
+- POST-3. Target user receives a WebSocket push (`/topic/user-deactivated/{id}`) triggering a redirect to the login screen.
 
 **Normal Flow**
-1. TARS displays the user detail view with a Deactivate button.
-2. Supervisor clicks Deactivate.
-3. TARS displays a confirmation dialog.
-4. Supervisor confirms the action.
-5. TARS sets the account status to Inactive.
-6. TARS invalidates any active JWT tokens for that user.
-7. TARS displays the updated user list with the account marked Inactive.
+1. TARS displays the user list; active users have a `TERMINATE_ACCESS` button.
+2. Supervisor clicks `TERMINATE_ACCESS` on the target user.
+3. TARS sends `PATCH /api/admin/users/{id}/deactivate` to the backend.
+4. Backend sets account status to INACTIVE and blacklists all active tokens via Redis.
+5. Backend pushes a WebSocket message to the deactivated user, forcing an immediate logout.
+6. TARS reloads the user list, showing the account as INACTIVE with no action button.
 
 **Alternative Flows**
-- A1 Operation Cancelled: Supervisor clicks "Cancel" on the confirmation dialog. Flow ends with no changes.
+- A1 Supervisor attempts to deactivate their own account: Backend returns 403; TARS displays "Cannot terminate your own access".
 
 **Exceptions**
-- E1 Supervisor attempts to deactivate their own account: TARS blocks the action and displays a warning message.
+- E1 Redis Connection Failure: `tokenDenylistService.blacklistUser()` fails; session invalidation does not occur and the token remains valid until natural expiry. Account status is still set to INACTIVE in the database.
+- E2 Database Unreachable: `DataAccessException` is caught by `GlobalExceptionHandler`, returns 503. TARS displays "Failed to terminate access".
 
 ---
 
 ## UC-05: Submit Temporal Observation Report
-
 | | |
 |---|---|
 | **Primary actors** | Agent |
-| **Secondary actors** | Gemini API |
-| **Description** | Agent submits an observation report describing a suspected temporal irregularity. TARS automatically triggers AI analysis (UC-08) upon submission. If severity is critical, UC-11 (Alerts) is triggered. |
-| **Trigger** | Agent selects Report new anomaly from the navigation menu. |
+| **Secondary actors** | Gemini API, Database |
+| **Description** | Agent submits an observation report describing a suspected temporal irregularity. TARS automatically triggers AI analysis (UC-08) upon submission. |
+| **Trigger** | Agent fills in the report form and clicks Submit. |
 
 **Preconditions**
 - PRE-1. Agent is authenticated.
-- PRE-2. Agent's subscription plan allows the chosen timeline.
-- PRE-3. Agent has not reached the monthly report limit for their plan.
+- PRE-2. Agent has not reached the monthly report limit for their plan.
+- PRE-3. Agent has access to the selected timeline under their subscription plan.
 
 **Postconditions**
-- POST-1. Observation report saved in the database with status Pending Analysis.
-- POST-2. AI analysis result attached to the report.
-- POST-3. If AI-determined severity >= 4 or paradox_risk = critical, UC-11 (Alerts) is triggered.
+- POST-1. Observation report saved in the database with status PENDING_ANALYSIS.
+- POST-2. AI analysis triggered asynchronously (UC-08).
 
 **Normal Flow**
-1. TARS displays the anomaly report form.
-2. Agent enters a free-text description of what was observed.
-3. Agent enters the temporal coordinate (year).
-4. Agent selects the affected timeline from the list of plan-accessible timelines.
-5. Agent enters keywords (persons, objects, locations).
-6. Agent clicks Submit.
-7. TARS validates all required fields are filled.
-8. TARS saves the observation report with status Pending Analysis.
-9. TARS sends description, keywords, year, timeline, and related DB records to Gemini API — triggers UC-08.
-10. TARS receives the AI analysis and attaches it to the report.
-11. TARS displays the AI analysis result: whether a confirmed anomaly was detected, its type, severity, and paradox risk.
+1. TARS displays the report form with description, year, keywords, and timeline fields.
+2. Agent fills in the fields and clicks Submit.
+3. TARS validates that at least one field is filled.
+4. TARS checks monthly report limit and timeline access for the agent's plan.
+5. TARS checks for a duplicate report (same agent, same timeline, same year).
+6. TARS saves the report with status PENDING_ANALYSIS and returns immediately.
+7. TARS dispatches AI analysis asynchronously — ENTERPRISE requests routed to the priority executor, FREE/PRO to the standard executor (UC-08).
+8. Agent receives the saved report response; analysis result arrives later via WebSocket push to `/topic/analysis/{agentId}`.
 
 **Alternative Flows**
-- A1 Duplicate detected by AI: At step 10, AI identifies a very similar existing observation. TARS warns the agent and offers the option to link to the existing anomaly or continue as a separate report. Agent chooses. Returns to step 11.
-- A2 Timeline not accessible under current plan: Agent attempts to select a restricted timeline. TARS shows a lock icon and an upgrade prompt. Agent is redirected to UC-12 if they choose to upgrade.
-- A3 Required fields missing: TARS highlights empty fields and blocks submission.
-- A4 Monthly report limit reached: TARS blocks submission and displays an upgrade prompt redirecting to UC-12.
+- A1 Required fields missing: Agent submits with no fields filled. TARS displays "At least one field must be filled" and blocks submission.
+- A2 Duplicate report: Agent submits a report for a timeline and year they already have an active report for. Backend returns 409; TARS displays the conflict message.
 
 **Exceptions**
-- E1 Gemini API unavailable: Anomaly is saved without AI analysis. A background job retries after 15 minutes.
+- E1 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
+- E2 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
+- E3 Gemini API unavailable: Report is saved successfully but analysis fails silently. Report remains in PENDING_ANALYSIS status indefinitely (no retry implemented).
+- E4 Database Unreachable: `DataAccessException` caught by `GlobalExceptionHandler`, returns 503.
 
 ---
 
 ## UC-06: Save Anomaly as Draft
-
 | | |
 |---|---|
 | **Primary actors** | Agent |
 | **Secondary actors** | Database |
 | **Description** | Agent saves a partially completed anomaly report as a draft. No AI analysis is triggered. The draft can be retrieved and completed later via UC-07. |
-| **Trigger** | Agent clicks Save as draft on the anomaly report form. |
+| **Trigger** | Agent clicks Save Draft on the report form. |
 
 **Preconditions**
 - PRE-1. Agent is authenticated.
 - PRE-2. Agent has entered at least one field in the report form.
 
 **Postconditions**
-- POST-1. Draft saved in the database with status Draft, linked to the agent's account.
+- POST-1. Draft saved in the database with status DRAFT, linked to the agent's account.
 
 **Normal Flow**
-1. Agent has partially filled in the anomaly report form.
-2. Agent clicks Save as draft instead of Submit.
-3. TARS validates that at least one field has been filled.
-4. TARS saves the form data as a draft record with status Draft.
-5. TARS displays a confirmation message.
-6. Draft is visible in the agent's draft list (UC-07).
+1. Agent has partially filled in the report form.
+2. Agent clicks Save Draft.
+3. TARS validates that at least one field (description, year, or keywords) is filled.
+4. TARS saves the form data as a draft record with status DRAFT.
+5. Draft appears immediately in the agent's draft list.
 
 **Alternative Flows**
-- A1 Validation Failure: Agent clicks save with zero fields filled. TARS highlights the requirement and blocks the save.
+- A1 Validation Failure: Agent clicks Save Draft with no fields filled. Backend returns 400; TARS displays "At least one field must be filled" and blocks the save.
 
 **Exceptions**
-- E1 Database Connection Loss: TARS cannot reach the database to store the draft. A "Service Unavailable" error is displayed.
+- E1 Database Unreachable: `DataAccessException` caught by `GlobalExceptionHandler`, returns 503. TARS displays a service unavailable error.
 
 ---
 
-## UC-07: View and Resume Draft
-
+## UC-07: View, Edit, and Delete Draft
 | | |
 |---|---|
 | **Primary actors** | Agent |
 | **Secondary actors** | Database |
-| **Description** | Agent views their list of saved drafts and selects one to resume. The selected draft opens the standard anomaly report form pre-filled with the previously saved data. |
-| **Trigger** | Agent navigates to the Drafts section from the navigation menu. |
+| **Description** | Agent views their list of saved drafts, selects one to resume editing, submit, or delete. |
+| **Trigger** | Agent navigates to the Drafts tab on the dashboard. |
 
 **Preconditions**
 - PRE-1. Agent is authenticated.
 - PRE-2. At least one draft exists for this agent.
-- PRE-3. Agent's subscription plan still allows access to the timeline saved in the draft.
 
 **Postconditions**
-- POST-1. Selected draft is opened in the report form with all previously saved fields pre-filled.
-- POST-2. Agent can modify, submit (UC-05), or delete the draft.
+- POST-1. Selected draft is loaded into the form with all previously saved fields pre-filled.
+- POST-2. Agent can update, submit (UC-05), or delete the draft.
 
 **Normal Flow**
-1. TARS displays the agent's draft list: date saved, timeline, partial description.
-2. Agent selects a draft.
-3. TARS opens the anomaly report form pre-filled with all saved data from the draft.
-4. Agent reviews and completes the remaining fields.
-5. Agent clicks Submit — flow continues as UC-05 from step 6.
-6. Upon successful submission, the draft record is deleted from the database.
+1. TARS displays the agent's draft list, polled every 5 seconds.
+2. Agent selects a draft; TARS pre-fills the form with the saved data.
+3. Agent edits fields and clicks Save Draft to update, or Submit to promote the draft to a submission.
+4. On submit: draft status changes to PENDING_ANALYSIS and UC-08 is triggered. Draft disappears from the draft list.
+5. On update: draft is saved with the new values and remains in the draft list.
 
 **Alternative Flows**
-- A1 Delete draft: At step 2, agent clicks Delete on a draft. TARS displays a confirmation dialog. Agent confirms. TARS deletes the draft record and displays the updated list.
-- A2 Draft references a timeline no longer accessible under the agent's plan: TARS shows a warning and prompts the agent to update the timeline selection or upgrade via UC-12.
+- A1 Delete draft: Agent clicks Delete on a draft. TARS deletes the record immediately (no confirmation dialog) and reloads the draft list.
 
 **Exceptions**
-- E1 Data Corruption: The draft record is malformed in the database. TARS fails to render the form and logs a technical error.
+- E1 Database Unreachable: `DataAccessException` caught by `GlobalExceptionHandler`, returns 503.
 
 ---
 
 ## UC-08: AI Analysis of New Anomaly
-
 | | |
 |---|---|
 | **Primary actors** | Gemini API |
 | **Secondary actors** | Database |
-| **Description** | Triggered automatically when a new observation report is submitted via UC-05. Gemini API analyzes the raw observation data and determines: whether a confirmed anomaly exists, its classification, severity, correlations with existing records, and paradox risk. ENTERPRISE subscribers receive priority queue processing. |
-| **Trigger** | TARS saves a new observation report with status Pending Analysis (auto-triggered from UC-05, step 9). |
+| **Description** | Triggered automatically when a new observation report is submitted (UC-05). Gemini API analyzes the observation and returns a structured result. ENTERPRISE agents are routed to a dedicated higher-capacity thread pool for priority processing. |
+| **Trigger** | TARS saves a new observation report with status PENDING_ANALYSIS (auto-triggered from UC-05, step 7). |
 
 **Preconditions**
-- PRE-1. New observation report has been saved in the database with status Pending Analysis.
+- PRE-1. Observation report saved in the database with status PENDING_ANALYSIS.
 - PRE-2. Gemini API is available and responding.
-- PRE-3. Application-level Gemini API key is configured and valid on the backend.
+- PRE-3. Gemini API key is configured and valid on the backend.
 
 **Postconditions**
-- POST-1. AI analysis saved in the database linked to the observation report. If a confirmed anomaly is detected, a new Anomaly record is created with the AI-determined type and severity.
-- POST-2. Analysis result visible to the agent in the UI.
+- POST-1. AI analysis saved in the database linked to the observation report.
+- POST-2. If `confirmed = true`, a new Anomaly record is created with AI-determined type and paradox risk.
+- POST-3. Analysis result pushed to the agent via WebSocket (`/topic/analysis/{agentId}`).
 
 **Normal Flow**
-1. TARS queries the database for all anomalies from the same timeline and nearby years, filtered by matching keywords.
-2. TARS builds the prompt: AI role definition (temporal analyst), list of related existing anomalies, new anomaly data, response format instructions (JSON).
-3. ENTERPRISE agent requests are placed in the priority queue; FREE and PRO requests in the standard queue.
+1. TARS queries the database for existing reports from the same timeline within a ±50 year window, filtered by matching keywords, excluding the submitting agent's own reports.
+2. TARS builds the Gemini prompt: analyst role definition, security directive against prompt injection, related historical reports, new report data, expected JSON response schema.
+3. ENTERPRISE requests are dispatched to `priorityExecutor` (4–8 threads); FREE and PRO requests to `standardExecutor` (2–4 threads).
 4. TARS sends the prompt to the Gemini API endpoint.
-5. Gemini API returns a JSON response: confirmed (true/false), type (PAR/DUP/DEV/RFT/ERO/LOP), severity (1–5), correlations (list of anomaly IDs), paradox_risk (low/medium/high/critical), explanation (text).
+5. Gemini returns a JSON response: `confirmed`, `type` (PAR/DUP/DEV/RFT/ERO/LOP), `paradoxRisk` (LOW/MEDIUM/HIGH/CRITICAL), `contributingReportIds`, `explanation`, `injectionDetected`.
 6. TARS parses the JSON response.
-7. TARS saves the analysis to the AnomalyAnalysis table. If confirmed = true, TARS creates a new Anomaly record with the AI-determined attributes.
-8. TARS displays the analysis result in the agent UI.
+7. TARS saves the analysis and updates the report status (CONFIRMED or REJECTED). If `confirmed = true`, TARS links to an existing anomaly or creates a new one.
+8. TARS pushes the full updated report DTO to the agent via WebSocket.
 
 **Alternative Flows**
-- A1 Non-JSON response from Gemini: At step 6, JSON parsing fails. TARS retries with a stricter prompt. If the second call succeeds, continues from step 7. If it also fails, the raw text is saved in the explanation field and type/severity fields are marked as Unresolved.
+- A1 Prompt injection detected: Gemini sets `injectionDetected: true`. TARS quarantines the report (status FLAGGED), saves the explanation, and pushes the result to the agent. No anomaly is created.
+- A2 Non-JSON or malformed response: JSON parsing fails on the first attempt. TARS retries with a stricter prompt. If the second attempt also fails, the analysis is saved with status UNRESOLVED and the report is marked REJECTED.
 
 **Exceptions**
-- E1 API timeout (> 10s): Analysis status saved as Pending. A background job retries after 15 minutes.
-- E2 API quota exceeded or invalid key: Analysis marked as Failed. System administrator is notified automatically.
+- E1 Gemini API unreachable or timeout: Exception caught in `doAnalyze`; analysis saved with status FAILED, result pushed to agent. Report is not retried automatically.
 
 ---
 
 ## UC-09: View Timeline Graph
-
 | | |
 |---|---|
 | **Primary actors** | Agent, Supervisor |
 | **Secondary actors** | Database |
-| **Description** | User views a 2D graph of all anomalies accessible to them, plotted by year (X axis) against timeline ID (Y axis). Each anomaly is represented as a colored dot based on severity. Agents see only plan-accessible timelines. Supervisors see all timelines. |
-| **Trigger** | User selects Timeline Graph from the main navigation menu. |
+| **Description** | User views a 2D SVG graph of confirmed anomalies plotted by year (X axis) against timeline (Y axis). Each anomaly is a colored dot based on paradox risk. Agents see locked lanes for inaccessible timelines. Supervisors see all timelines as accessible. |
+| **Trigger** | User navigates to the Timeline Graph page. |
 
 **Preconditions**
 - PRE-1. User is authenticated.
-- PRE-2. At least one anomaly exists in the database and is accessible to the user.
+- PRE-2. At least one confirmed anomaly exists in the database.
 - PRE-3. For Agents: at least one timeline is accessible under their subscription plan.
 
 **Postconditions**
-- POST-1. Graph is rendered with all accessible anomaly data.
-- POST-2. Each timeline is displayed as a horizontal lane on the Y axis.
+- POST-1. Graph is rendered with all anomaly dots matching current filters.
+- POST-2. Each timeline is shown as a horizontal lane; inaccessible lanes are greyed out with a `⊘` prefix.
 
 **Normal Flow**
-1. TARS fetches all anomalies accessible to the user's role and subscription plan via REST API.
-2. Angular renders the 2D graph: X axis = year, Y axis = timeline ID.
-3. Each anomaly is displayed as a colored dot: green (severity 1–2), yellow (3), orange (4), red (5).
-4. Timelines outside the agent's subscription plan are shown as locked lanes with a lock icon.
-5. User hovers over a dot to see the anomaly summary in a tooltip (type, severity, year, timeline).
-6. User clicks a dot to open the full anomaly detail view including the attached AI analysis.
+1. TARS fetches all timelines via `GET /api/graph/timelines` — agents receive accessible flags, supervisors see all as accessible.
+2. TARS fetches anomaly data via `GET /api/graph/anomalies` with no filters applied.
+3. Angular renders the SVG graph: X axis = year (auto-scaled to data range), Y axis = timelines with confirmed anomalies.
+4. Each anomaly is displayed as a colored dot by paradox risk: LOW (light blue), MEDIUM (blue), HIGH (dark blue), CRITICAL (navy).
+5. Inaccessible timeline lanes are shown with a grey background and `⊘` prefix on the label.
+6. User hovers over a dot to see a tooltip: anomaly ID, year, type, paradox risk, timeline name.
 
 **Alternative Flows**
-- A1 Zoom and pan: User scrolls to zoom into a specific year range. Graph re-renders for the selected range. All currently active filters (UC-10) remain applied.
+- A1 No anomalies match current filters: TARS displays "NO_ANOMALIES_FOUND" and prompts the user to adjust filters.
 
 **Exceptions**
-- E1 API Timeout: The request for anomaly data takes > 10s. TARS displays a "Connection Timed Out" message.
-- E2 Rendering Crash: The dataset is too large for the browser to handle. TARS displays a "Graph failed to load" fallback.
+- E1 API error: HTTP request fails for any reason. TARS displays "Failed to load anomaly data." and stops rendering.
 
 ---
 
 ## UC-10: Filter Anomalies on Graph
-
 | | |
 |---|---|
 | **Primary actors** | Agent, Supervisor |
 | **Secondary actors** | Database |
-| **Description** | While viewing the timeline graph (UC-09), user applies one or more filters to narrow down which anomaly dots are displayed. The graph updates in real time as filters are applied or removed. |
-| **Trigger** | User interacts with the filter panel while the timeline graph is displayed. |
+| **Description** | While viewing the timeline graph (UC-09), user applies filters to narrow which anomaly dots are displayed. The graph updates when the user clicks Apply Filters. |
+| **Trigger** | User interacts with the filter panel on the graph page. |
 
 **Preconditions**
 - PRE-1. User is authenticated.
 - PRE-2. Timeline graph (UC-09) is currently rendered.
-- PRE-3. At least one anomaly is visible on the graph before filtering.
 
 **Postconditions**
-- POST-1. Graph displays only the anomaly dots matching all active filter criteria.
-- POST-2. Active filters are preserved if the user zooms or pans the graph.
+- POST-1. Graph displays only anomaly dots matching all active filter criteria.
 
 **Normal Flow**
-1. TARS displays the filter panel alongside the graph: keyword search, severity (1–5), anomaly type (PAR/DUP/DEV/RFT/ERO/LOP), status (Open/Under investigation/Resolved/Draft), year range.
-2. User selects or enters one or more filter criteria.
-3. TARS applies filters in real time and updates the graph.
-4. Dots not matching the criteria are hidden. Matching dots remain visible.
-5. User can add, modify, or remove individual filters at any time.
-6. TARS updates the graph after each filter change.
+1. TARS displays the filter panel with four controls: Timeline (dropdown), Paradox Risk (LOW/MEDIUM/HIGH/CRITICAL dropdown), Year From (number input), Year To (number input).
+2. User sets one or more filter values.
+3. User clicks `APPLY_FILTERS`.
+4. TARS sends a new `GET /api/graph/anomalies` request with the selected values as query parameters.
+5. Graph re-renders with only the matching anomaly dots.
 
 **Alternative Flows**
-- A1 Clear all filters: User clicks Clear filters. TARS removes all active filter criteria. Graph reverts to showing all accessible anomalies.
+- A1 Clear filters: User clicks `RESET`. TARS clears all filter values and reloads the graph with no filters applied.
 
 **Exceptions**
-- E1 Database Query Error: A complex filter string causes a backend error. TARS blocks the update and displays a technical warning.
+- E1 API error: Filtered request fails. TARS displays "Failed to load anomaly data."
 
 ---
 
 ## UC-11: Alerts for Critical Anomalies
-
 | | |
 |---|---|
 | **Primary actors** | Supervisor |
 | **Secondary actors** | Database |
-| **Description** | TARS automatically generates an in-app alert when an AI analysis returns severity >= 4 or paradox_risk = critical. Alerts appear in a dedicated notification panel visible to all Supervisors. |
-| **Trigger** | AI analysis (UC-08) returns severity >= 4 or paradox_risk = critical. |
+| **Description** | TARS automatically generates an in-app alert when an AI analysis returns paradox risk HIGH or CRITICAL. Alerts appear as toast notifications in the bottom-left corner of the Supervisor dashboard, visible to all active Supervisors simultaneously. |
+| **Trigger** | UC-08 saves a confirmed anomaly with `paradoxRisk = HIGH` or `paradoxRisk = CRITICAL`. |
 
 **Preconditions**
-- PRE-1. AI analysis has been completed and saved for a new anomaly.
-- PRE-2. Analysis result contains severity >= 4 or paradox_risk = critical.
-- PRE-3. At least one Supervisor account exists in the system.
+- PRE-1. AI analysis has been completed and saved for a confirmed anomaly.
+- PRE-2. Anomaly paradox risk is HIGH or CRITICAL.
+- PRE-3. No alert already exists for this anomaly (duplicate guard).
 
 **Postconditions**
 - POST-1. Alert record created in the database linked to the anomaly.
-- POST-2. Alert visible in the Supervisor notification panel.
+- POST-2. Alert pushed to all active Supervisor sessions via WebSocket and displayed as a toast.
+- POST-3. Alert persists in the database until acknowledged.
 
 **Normal Flow**
-1. TARS detects severity >= 4 or paradox_risk = critical in the completed AI analysis.
-2. TARS creates an alert record in the database linked to the anomaly.
-3. If at least one Supervisor session is active: alert appears immediately in the notification panel.
-4. If no Supervisor session is active: alert is stored and shown on next Supervisor login.
-5. Supervisor reads the alert in the notification panel.
-6. Supervisor clicks View anomaly to open the full anomaly detail view.
-7. Supervisor marks the alert as Acknowledged.
+1. `GeminiService` calls `alertService.triggerIfCritical(anomaly)` after saving a confirmed anomaly.
+2. `AlertService` checks paradox risk and creates an alert record in the database.
+3. TARS pushes the `AlertDTO` to `/topic/alerts` via WebSocket.
+4. All Supervisors with an active session receive the toast immediately via their WebSocket subscription.
+5. On Supervisor dashboard load, `AlertToasts` calls `GET /api/admin/alerts` to fetch all unacknowledged alerts — this covers the case where the Supervisor was offline when the alert was created.
+6. Supervisor reads the alert toast showing: anomaly ID, type, paradox risk, timeline, year.
+7. Supervisor clicks `ACKNOWLEDGE`; TARS sends `PATCH /api/admin/alerts/{id}/acknowledge`.
+8. Alert is marked acknowledged in the database and removed from all active Supervisor sessions via `/topic/alerts/acknowledged` WebSocket push.
 
 **Alternative Flows**
-- A1 Delayed Notification: No Supervisor is online. Alert is stored and displayed immediately upon the next Supervisor login.
+- A1 Duplicate anomaly alert: `AlertService` detects an alert already exists for this anomaly and skips creation silently.
 
 **Exceptions**
-- E1 WebSocket Failure: The real-time notification bridge is broken. The alert is saved in the DB but does not pop up until the page is manually refreshed.
+- E1 WebSocket push failure: Alert is saved in the database but the real-time toast does not appear. Alert is shown on the next Supervisor dashboard load via the `getUnacknowledged()` REST call.
 
 ---
-
 ## UC-12: Upgrade Subscription
-
 | | |
 |---|---|
 | **Primary actors** | Agent |
 | **Secondary actors** | Stripe API, Database |
-| **Description** | Agent selects a higher-tier subscription plan to unlock access to more timelines and a higher monthly report quota. Payment is processed via Stripe in test mode. Access is granted immediately upon payment confirmation via Stripe webhook. |
-| **Trigger** | Agent opens the Subscription section from the dashboard, or is redirected from UC-05 or UC-09 after hitting a plan limit. |
+| **Description** | Agent selects a higher-tier subscription plan to unlock access to more timelines and a higher monthly report quota. Payment is processed via Stripe. Access is granted immediately upon payment confirmation via Stripe webhook. |
+| **Trigger** | Agent navigates to the Subscription page from the sidebar. |
 
 **Preconditions**
 - PRE-1. Agent is authenticated.
@@ -405,59 +386,59 @@
 
 **Postconditions**
 - POST-1. Subscription record updated in the database with the new plan, billing cycle, and expiry date.
-- POST-2. Accessible timeline count and monthly report quota updated immediately.
+- POST-2. New timeline quota and monthly report limit are immediately active.
 
 **Normal Flow**
 1. TARS displays the Subscription page: current plan, timelines used/allowed, reports used/allowed, renewal date.
-2. Agent reviews the available upgrade plans: PRO, ENTERPRISE.
-3. Agent selects a plan and billing cycle (monthly or annual).
-4. Agent clicks Upgrade.
-5. TARS calls the Stripe Checkout API and redirects the agent to the Stripe-hosted payment page.
+2. Agent reviews the available upgrade plans (PRO, ENTERPRISE) and selects a billing cycle (MONTHLY or ANNUAL).
+3. Agent clicks `UPGRADE_SYSTEM`.
+4. TARS calls `POST /api/reports/subscription/upgrade`, which creates a Stripe Checkout session and returns the redirect URL.
+5. Agent is redirected to the Stripe-hosted payment page.
 6. Agent completes payment on Stripe.
-7. Stripe sends a payment_succeeded webhook to the TARS backend.
-8. TARS verifies the Stripe signature and updates the Subscription record in the database.
-9. TARS redirects the agent to the dashboard with a confirmation banner.
-10. New timeline slots and report quota are immediately active.
+7. Stripe sends a webhook to the TARS backend; `activateSubscription()` updates the subscription record, sets expiry date, and calls `timelineAccessService.onUpgrade()`.
+8. TARS pushes the updated `SubscriptionDTO` to the agent via WebSocket (`/topic/subscription/{agentId}`).
+9. Agent is redirected back to `/subscription?upgraded=true`; TARS displays an upgrade confirmation banner.
+10. For PRO upgrades: TARS displays a timeline picker so the agent can select up to 5 timeline slots. For ENTERPRISE: all timelines are granted automatically.
 
 **Alternative Flows**
-- A1 Payment Declined: Stripe reports a card failure. User is returned to the plan selection page to try a different card.
+- A1 Payment declined or abandoned: Handled entirely by the Stripe-hosted page. Agent is returned to the Stripe form to retry or cancel. TARS receives no webhook and no changes are made.
 
 **Exceptions**
-- E1 Webhook Failure: Payment is successful on Stripe, but TARS backend is down or the signature is invalid. Subscription is not updated (requires manual Admin sync).
-- E2 Stripe API Timeout: TARS cannot initiate the session. Displays "Service Unavailable."
+- E1 Stripe API timeout: `createCheckoutSession()` throws; TARS returns 503 and displays "Payment service unavailable. Try again."
+- E2 Webhook not received: Payment succeeds on Stripe but the backend is unreachable. Subscription is not updated until the webhook is replayed or manually resolved in the Stripe dashboard.
 
 ---
 
 ## UC-13: Cancel Subscription
-
 | | |
 |---|---|
 | **Primary actors** | Agent |
 | **Secondary actors** | Stripe API, Database |
-| **Description** | Agent cancels their current paid subscription. The plan remains active until the end of the current billing cycle, after which it reverts to FREE. Timelines and quotas are adjusted at plan expiry. |
-| **Trigger** | Agent opens the Subscription section and clicks Cancel subscription. |
+| **Description** | Agent cancels their current paid subscription. The plan remains active until the end of the current billing cycle, after which a Stripe webhook triggers reversion to FREE and timeline access is reduced accordingly. |
+| **Trigger** | Agent clicks `CANCEL_SUBSCRIPTION` on the Subscription page. |
 
 **Preconditions**
 - PRE-1. Agent is authenticated.
 - PRE-2. Agent has an active paid subscription (PRO or ENTERPRISE).
-- PRE-3. Stripe API key is configured on the backend.
+- PRE-3. Cancellation has not already been scheduled.
 
 **Postconditions**
-- POST-1. Stripe subscription is marked for cancellation at period end.
-- POST-2. Agent retains current plan access until the billing cycle ends.
-- POST-3. Plan reverts to FREE at end of billing cycle. Timeline access and report quota are reduced accordingly.
+- POST-1. Stripe subscription is marked `cancel_at_period_end = true`.
+- POST-2. `cancellationScheduled = true` saved in the database.
+- POST-3. Agent retains current plan access until the billing cycle ends.
+- POST-4. When the period ends, Stripe fires `customer.subscription.deleted`; TARS reverts plan to FREE and deactivates all timelines beyond 1 via `onDowngradeToFree()`.
 
 **Normal Flow**
-1. TARS displays the Subscription page with current plan details and a Cancel subscription button.
-2. Agent clicks Cancel subscription.
-3. TARS displays a confirmation dialog showing the exact date the plan will revert to FREE.
-4. Agent confirms the cancellation.
-5. TARS calls the Stripe cancel API to schedule cancellation at period end.
-6. TARS updates the subscription record with cancellation_scheduled = true.
-7. TARS displays a confirmation message. Agent retains current plan until expiry.
+1. TARS displays the Subscription page with a `CANCEL_SUBSCRIPTION` button (shown only for paid, non-cancelled plans).
+2. Agent clicks `CANCEL_SUBSCRIPTION`.
+3. TARS displays an inline confirmation showing: "Plan reverts to FREE at end of billing cycle. Active timelines beyond 1 will be deactivated."
+4. Agent clicks `CONFIRM_CANCEL`.
+5. TARS calls `POST /api/reports/subscription/cancel`; backend calls Stripe to set `cancelAtPeriodEnd = true` and sets `cancellationScheduled = true` in the database.
+6. TARS displays a confirmation message with the exact expiry date: "Subscription cancelled. Access remains until {date}."
+7. The `CANCEL_SUBSCRIPTION` button is hidden; subscription status shows `(CANCELS)` next to the renewal date.
 
 **Alternative Flows**
-- A1 Agent cancels the confirmation dialog: No changes are made. Subscription remains active.
+- A1 Agent aborts confirmation: Agent clicks `ABORT` on the confirmation dialog. No changes are made.
 
 **Exceptions**
-- E1 Stripe API unavailable: TARS displays an error and suggests retrying. No cancellation is processed.
+- E1 Stripe API unavailable: `cancelSubscription()` throws; TARS returns 503 and displays "Cancellation failed. Try again." No cancellation is processed.
