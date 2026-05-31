@@ -4,5 +4,7 @@ public enum ReportStatus {
     DRAFT,
     PENDING_ANALYSIS,
     CONFIRMED,
-    REJECTED
-}
+    REJECTED,
+    FLAGGED         // Prompt injection detected — report quarantined, excluded from all analysis and corroboration
+
+    }

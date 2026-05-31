@@ -8,6 +8,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * Returned to the agent after submission and via WebSocket on analysis completion.
+ * status = FLAGGED means the report was quarantined due to a prompt injection attempt.
+ * In that case, analysis.injectionDetected = true and analysis.explanation states the reason.
+ */
 @Data
 @Builder
 @NoArgsConstructor
