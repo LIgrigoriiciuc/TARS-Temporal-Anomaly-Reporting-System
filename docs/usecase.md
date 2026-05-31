@@ -1,7 +1,6 @@
 # TARS — Use Cases
 
 ## UC-01: System Login
-
 | | |
 |---|---|
 | **Primary actors** | Agent, Supervisor |
@@ -15,34 +14,32 @@
 - PRE-3. Application and database are running.
 
 **Postconditions**
-- POST-1. User is authenticated with an active JWT session.
-- POST-2. User is redirected to the role-specific dashboard.
+- POST-1. User is authenticated with an active JWT session (HttpOnly cookie).
+- POST-2. User is redirected to the role-specific dashboard (`/supervisor` or `/agent`).
 
 **Normal Flow**
 1. TARS displays the login screen with email and password fields.
 2. User enters their email address.
 3. User enters their password.
-4. User clicks Login.
-5. TARS validates credentials against the database.
-6. TARS issues a JWT token set as an HttpOnly cookie.
-7. TARS redirects the user to the role-specific dashboard.
+4. User clicks `[INITIALIZE_LINK]`.
+5. TARS validates credentials against the database — checks email existence, BCrypt password match, and account status.
+6. TARS generates a JWT token and sets it as an HttpOnly, SameSite=Lax cookie valid for 8 hours.
+7. TARS redirects the user to the role-specific dashboard based on the `role` field in the response.
 
 **Alternative Flows**
-- A1 Invalid Credentials: User enters wrong email/password. TARS displays "Invalid credentials" and returns to step 1.
-- A2 Password Recovery: At step 3, user selects "Forgot password." TARS triggers the reset email workflow.
+- A1 Invalid Credentials: User enters wrong email or password. Backend returns 401; TARS displays "Invalid credentials" and remains on the login screen.
 
 **Exceptions**
-- E1 Account Locked: After 5 failed attempts, the system blocks the account for 15 minutes.
-- E2 Database Timeout: TARS cannot reach the database; displays a technical error.
+- E1 Account Inactive: User account has status `INACTIVE`. Backend returns 403; TARS displays "ACCOUNT_TERMINATED // Access denied".
+- E2 Database Timeout: Backend cannot reach the database; a `DataAccessException` is caught by `GlobalExceptionHandler` and returns 503. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
 
 ---
 
 ## UC-02: Logout
-
 | | |
 |---|---|
 | **Primary actors** | Agent, Supervisor |
-| **Secondary actors** | Database |
+| **Secondary actors** | Redis (denylist store) |
 | **Description** | Authenticated user securely terminates their active session. TARS invalidates the JWT token server-side and redirects to the login screen. |
 | **Trigger** | User clicks the Logout button from any page in the application. |
 
@@ -50,25 +47,23 @@
 - PRE-1. User is authenticated with an active JWT session.
 
 **Postconditions**
-- POST-1. JWT token is invalidated on the server (added to denylist).
-- POST-2. Token is cleared from the browser.
-- POST-3. User is redirected to the login screen.
+- POST-1. JWT token is added to the Redis denylist, invalidated server-side.
+- POST-2. JWT cookie is cleared from the browser (MaxAge=0).
+- POST-3. `localStorage` is cleared and user is redirected to `/login`.
 
 **Normal Flow**
 1. User clicks the Logout button.
-2. TARS sends a logout request to the backend.
-3. Backend adds the JWT token to the denylist, invalidating it server-side.
-4. TARS instructs the server to clear the JWT cookie.
-5. TARS redirects the user to the login screen.
+2. Angular calls `POST /api/auth/logout` with `withCredentials: true`.
+3. Backend extracts the JWT from cookies, calculates remaining TTL, and adds it to the Redis denylist.
+4. Backend sets the JWT cookie to empty with `MaxAge=0`, deleting it from the browser.
+5. Angular `tap()` clears `localStorage` and navigates to `/login`.
 
 **Alternative Flows**
 - A1 Session Timeout: System detects inactivity and triggers the logout flow automatically.
 
 **Exceptions**
-- E1 Redis Connection Failure: Backend cannot reach the denylist store. TARS clears the local cookie but the token remains valid server-side until natural expiry.
-- E2 Network Error: Request fails to reach the server. TARS forces a local cookie clear and redirect to login.
-
----
+- E1 Redis Connection Failure: `tokenDenylistService.blacklistToken()` throws; the exception is caught internally in `AuthService.logout()`, the error is logged as `DENYLIST_FAILURE`, and execution continues — the cookie is still cleared. Token remains valid server-side until natural expiry.
+- E2 Network Error: HTTP request fails to reach the server. Angular `catchError()` triggers, clears `localStorage`, and redirects to `/login` regardless.
 
 ## UC-03: Create User Account
 
