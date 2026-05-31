@@ -28,10 +28,10 @@
 
 **Alternative Flows**
 - A1 Invalid Credentials: User enters wrong email or password. Backend returns 401; TARS displays "Invalid credentials" and remains on the login screen.
+- A2 Account Inactive: User account has status `INACTIVE`. Backend returns 403; TARS displays "ACCOUNT_TERMINATED // Access denied".
 
 **Exceptions**
-- E1 Account Inactive: User account has status `INACTIVE`. Backend returns 403; TARS displays "ACCOUNT_TERMINATED // Access denied".
-- E2 Database Timeout: Backend cannot reach the database; a `DataAccessException` is caught by `GlobalExceptionHandler` and returns 503. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
+- E1 Database Timeout: Backend cannot reach the database; a `DataAccessException` is caught by `GlobalExceptionHandler` and returns 503. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
 
 ---
 
@@ -64,6 +64,8 @@
 **Exceptions**
 - E1 Redis Connection Failure: `tokenDenylistService.blacklistToken()` throws; the exception is caught internally in `AuthService.logout()`, the error is logged as `DENYLIST_FAILURE`, and execution continues — the cookie is still cleared. Token remains valid server-side until natural expiry.
 - E2 Network Error: HTTP request fails to reach the server. Angular `catchError()` triggers, clears `localStorage`, and redirects to `/login` regardless.
+
+---
 
 ## UC-03: Create User Account
 
