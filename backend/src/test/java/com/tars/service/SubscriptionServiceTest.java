@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 class SubscriptionServiceTest {
 
     @Mock SubscriptionRepository subscriptionRepository;
+    @Mock TimelineAccessService timelineAccessService;
     @InjectMocks SubscriptionService subscriptionService;
 
     private Agent agent;
@@ -60,6 +61,9 @@ class SubscriptionServiceTest {
         ReflectionTestUtils.setField(proSub, "id", 1L);
 
         when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // TimelineAccessService is @Lazy setter-injected — wire it manually
+        subscriptionService.setTimelineAccessService(timelineAccessService);
     }
 
     // -------------------------------------------------------------------------

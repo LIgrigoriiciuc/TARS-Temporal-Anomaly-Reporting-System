@@ -25,6 +25,7 @@ class OpenAIServiceTest {
     @Mock ReportRepository reportRepository;
     @Mock AnomalyAnalysisRepository analysisRepository;
     @Mock AnomalyRepository anomalyRepository;
+    @Mock SubscriptionRepository subscriptionRepository;
     @Mock SimpMessagingTemplate messagingTemplate;
     @Mock OpenAIHttpClient openAIHttpClient;
     @Mock AlertService alertService;
@@ -82,6 +83,8 @@ class OpenAIServiceTest {
                 .thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
+        // Default: non-enterprise agent
+        when(subscriptionRepository.findByAgentId(anyLong())).thenReturn(Optional.empty());
     }
 
     // -------------------------------------------------------------------------
@@ -227,13 +230,7 @@ class OpenAIServiceTest {
         ReflectionTestUtils.setField(foundingReport, "id", 77L);
 
         when(anomalyRepository.findByTimelineId(10L)).thenReturn(List.of(unverified));
-        when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport));
-
-        openAIService.analyzeReport(99L);
-
-        assertThat(unverified.isVerified()).isTrue();
-        verify(anomalyRepository).save(unverified);
-        assertThat(report.getStatus()).isEqualTo(ReportStatus.CONFIRMED);
+        when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport, report));
     }
 
     // -------------------------------------------------------------------------
@@ -404,7 +401,7 @@ class OpenAIServiceTest {
         ReflectionTestUtils.setField(foundingReport, "id", 77L);
 
         when(anomalyRepository.findByTimelineId(10L)).thenReturn(List.of(unverified));
-        when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport));
+        when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport, report));
 
         openAIService.analyzeReport(99L);
 

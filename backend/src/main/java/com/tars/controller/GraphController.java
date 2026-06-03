@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Set;
@@ -58,7 +59,7 @@ public class GraphController {
 
             // If filtering by a specific timeline, check access
             if (timelineId != null && !allowedIds.contains(timelineId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No access to this timeline");
             }
         }
 

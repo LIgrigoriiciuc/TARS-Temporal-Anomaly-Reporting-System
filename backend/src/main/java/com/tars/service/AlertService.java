@@ -75,6 +75,6 @@ public class AlertService {
         alert.setAcknowledged(true);
         Alert saved = alertRepository.save(alert);
         messagingTemplate.convertAndSend("/topic/alerts/acknowledged", alertId);
-        return AlertMapper.toDto(alertRepository.save(alert));
+        return AlertMapper.toDto(saved);
     }
 }

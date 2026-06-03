@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -68,7 +69,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(null, null, null, null))
                 .thenReturn(List.of(anomaly1, anomaly2));
 
-        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, null, null, null);
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, null, null, null, null);
 
         assertThat(result).hasSize(2);
         verify(anomalyRepository).findForGraph(null, null, null, null);
@@ -79,7 +80,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(null, null, null, null))
                 .thenReturn(List.of());
 
-        assertThat(graphService.getGraphAnomalies(null, null, null, null)).isEmpty();
+        assertThat(graphService.getGraphAnomalies(null, null, null, null, null)).isEmpty();
     }
 
     // -------------------------------------------------------------------------
@@ -91,7 +92,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(1L, null, null, null))
                 .thenReturn(List.of(anomaly1));
 
-        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(1L, null, null, null);
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(1L, null, null, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTimelineId()).isEqualTo(1L);
@@ -103,7 +104,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(null, ParadoxRisk.CRITICAL, null, null))
                 .thenReturn(List.of(anomaly1));
 
-        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, ParadoxRisk.CRITICAL, null, null);
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, ParadoxRisk.CRITICAL, null, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getParadoxRisk()).isEqualTo(ParadoxRisk.CRITICAL);
@@ -114,7 +115,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(null, null, 2040, 2050))
                 .thenReturn(List.of(anomaly1));
 
-        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, null, 2040, 2050);
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, null, 2040, 2050, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getYear()).isEqualTo(2045);
@@ -125,7 +126,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(1L, ParadoxRisk.CRITICAL, 2040, 2050))
                 .thenReturn(List.of(anomaly1));
 
-        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(1L, ParadoxRisk.CRITICAL, 2040, 2050);
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(1L, ParadoxRisk.CRITICAL, 2040, 2050, null);
 
         assertThat(result).hasSize(1);
         verify(anomalyRepository).findForGraph(1L, ParadoxRisk.CRITICAL, 2040, 2050);
@@ -140,7 +141,7 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(null, null, null, null))
                 .thenReturn(List.of(anomaly1));
 
-        AnomalyGraphDTO dto = graphService.getGraphAnomalies(null, null, null, null).get(0);
+        AnomalyGraphDTO dto = graphService.getGraphAnomalies(null, null, null, null, null).get(0);
 
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getType()).isEqualTo(AnomalyType.PAR);
@@ -164,9 +165,35 @@ class GraphServiceTest {
         when(anomalyRepository.findForGraph(null, null, null, null))
                 .thenReturn(List.of(noTimeline));
 
-        AnomalyGraphDTO dto = graphService.getGraphAnomalies(null, null, null, null).get(0);
+        AnomalyGraphDTO dto = graphService.getGraphAnomalies(null, null, null, null, null).get(0);
 
         assertThat(dto.getTimelineId()).isNull();
         assertThat(dto.getTimelineName()).isNull();
+    }
+
+    // -------------------------------------------------------------------------
+    // allowedTimelineIds filter
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getGraphAnomalies_allowedTimelineIds_filtersOutNonMatching() {
+        when(anomalyRepository.findForGraph(null, null, null, null))
+                .thenReturn(List.of(anomaly1, anomaly2));
+
+        // Only timeline 1 (ALPHA) is allowed
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, null, null, null, Set.of(1L));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTimelineId()).isEqualTo(1L);
+    }
+
+    @Test
+    void getGraphAnomalies_allowedTimelineIds_emptySet_returnsNothing() {
+        when(anomalyRepository.findForGraph(null, null, null, null))
+                .thenReturn(List.of(anomaly1, anomaly2));
+
+        List<AnomalyGraphDTO> result = graphService.getGraphAnomalies(null, null, null, null, Set.of());
+
+        assertThat(result).isEmpty();
     }
 }

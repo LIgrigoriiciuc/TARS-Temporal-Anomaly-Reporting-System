@@ -76,8 +76,12 @@ export class GraphPage implements OnInit, OnDestroy {
     this.hoveredAnomaly = null;
     this.graphService.getAnomalies(this.filters).subscribe({
       next : (data) => { this.anomalies.set(data); this.loading.set(false); },
-      error: ()     => { this.error.set('Failed to load anomaly data.'); this.loading.set(false); }
-    });
+      error: (err) => {
+        if (err.status === 403) {
+          this.error.set('No access to this timeline.');
+        } else {
+          this.error.set('Failed to load anomaly data.');
+        }}});
   }
 
   applyFilters() { this.loadAnomalies(); }

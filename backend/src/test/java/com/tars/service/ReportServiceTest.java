@@ -35,7 +35,13 @@ class ReportServiceTest {
     private AnomalyAnalysisRepository analysisRepository;
 
     @Mock
-    private OpenAIService openAIService;
+    private SubscriptionService subscriptionService;
+
+    @Mock
+    private TimelineAccessService timelineAccessService;
+
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ReportService reportService;
@@ -97,7 +103,7 @@ class ReportServiceTest {
     @Test
     void getAgentDrafts_ReturnsDrafts() {
         draft.setStatus(ReportStatus.DRAFT);
-        when(reportRepository.findByAgentIdAndStatus(1L, ReportStatus.DRAFT))
+        when(reportRepository.findByAgentIdAndStatusOrderByIdDesc(1L, ReportStatus.DRAFT))
                 .thenReturn(List.of(draft));
         List<ObservationReport> result = reportService.getAgentDrafts(1L);
         assertEquals(1, result.size());
