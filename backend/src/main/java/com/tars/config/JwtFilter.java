@@ -74,11 +74,12 @@ public class JwtFilter implements Filter {
             return;
         }
         // /api/graph/ is accessible to both Agent and Supervisor — no role check needed
-        //Attach user to request, controllers retrieve via request.getAttribute("currentUser")
+        // Attach user to request, controllers retrieve via request.getAttribute("currentUser")
         request.setAttribute("currentUser", user);
         chain.doFilter(req, res);
     }
 
+    //Once the WebSocket connection is established, it's no longer HTTP — it's its own protocol.
     private boolean isPublic(String path) {
         return path.startsWith("/api/auth/") || path.startsWith("/ws/") || path.startsWith("/api/stripe/");
     }

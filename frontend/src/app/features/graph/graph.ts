@@ -2,12 +2,15 @@ import { Component, OnInit, OnDestroy, signal, computed, ElementRef, ViewChild, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GraphService, AnomalyGraphDTO, GraphFilters } from '../../core/services/graph';
+import { WebSocketService } from '../../core/services/websocket';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+import { TerminationOverlay } from '../../shared/termination-overlay/termination-overlay';
+import {AlertToasts} from '../../shared/alert-toasts/alert-toasts';
 
 @Component({
   selector: 'app-graph',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar],
+  imports: [CommonModule, FormsModule, Sidebar, TerminationOverlay, AlertToasts],
   templateUrl: './graph.html'
 })
 export class GraphPage implements OnInit, OnDestroy {
@@ -27,15 +30,12 @@ export class GraphPage implements OnInit, OnDestroy {
   };
 
   readonly paradoxRiskOptions = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-
-  // Layout
   readonly LANE_HEIGHT   = 32;
   readonly Y_LABEL_WIDTH = 110;
   readonly X_PADDING     = 24;
   readonly HEADER_HEIGHT = 36;
   readonly DOT_RADIUS    = 4;
 
-  // Hover tooltip
   hoveredAnomaly: AnomalyGraphDTO | null = null;
   tooltipX = 0;
   tooltipY = 0;
@@ -45,12 +45,15 @@ export class GraphPage implements OnInit, OnDestroy {
 
   private resizeObserver?: ResizeObserver;
 
-  constructor(private graphService: GraphService, private zone: NgZone) {}
+  constructor(private graphService: GraphService, private wsService: WebSocketService, private zone: NgZone) {}
 
   ngOnInit() {
     this.graphService.getTimelines().subscribe({
       next: (data) => { this.timelines.set(data); this.loadAnomalies(); }
     });
+    if (this.role === 'agent') {
+      this.wsService.connect();
+    }
   }
 
   ngAfterViewInit() {
@@ -78,13 +81,10 @@ export class GraphPage implements OnInit, OnDestroy {
   }
 
   applyFilters() { this.loadAnomalies(); }
-
   clearFilters() {
     this.filters = { timelineId: null, paradoxRisk: null, yearFrom: null, yearTo: null };
     this.loadAnomalies();
   }
-
-  // ── Computed ─────────────────────────────────────────────────────────────────
 
   visibleTimelines = computed(() => {
     const ids = new Set(this.anomalies().map(a => a.timelineId));
@@ -115,8 +115,6 @@ export class GraphPage implements OnInit, OnDestroy {
     return ticks;
   });
 
-  // ── Coordinates ──────────────────────────────────────────────────────────────
-
   xForYear(year: number): number {
     const { min, max } = this.yearRange();
     const usable = this.svgWidth() - this.Y_LABEL_WIDTH - this.X_PADDING;
@@ -130,36 +128,31 @@ export class GraphPage implements OnInit, OnDestroy {
 
   dotFill(risk: string): string {
     switch (risk) {
-      case 'LOW'     : return '#bbf7d0'; // green
-      case 'MEDIUM'  : return '#fef08a'; // yellow
-      case 'HIGH'    : return '#fdba74'; // orange
-      case 'CRITICAL': return '#f87171'; // red
+      case 'LOW'     : return '#bbf7d0';
+      case 'MEDIUM'  : return '#fef08a';
+      case 'HIGH'    : return '#fdba74';
+      case 'CRITICAL': return '#f87171';
       default        : return '#bbf7d0';
     }
   }
 
   dotStroke(risk: string): string {
     switch (risk) {
-      case 'LOW'     : return '#16a34a'; // dark green
-      case 'MEDIUM'  : return '#ca8a04'; // dark yellow
-      case 'HIGH'    : return '#ea580c'; // dark orange
-      case 'CRITICAL': return '#dc2626'; // dark red
+      case 'LOW'     : return '#16a34a';
+      case 'MEDIUM'  : return '#ca8a04';
+      case 'HIGH'    : return '#ea580c';
+      case 'CRITICAL': return '#dc2626';
       default        : return '#16a34a';
     }
   }
 
-  // ── Tooltip ───────────────────────────────────────────────────────────────────
-
   onDotHover(event: MouseEvent, anomaly: AnomalyGraphDTO) {
     const rect = (event.currentTarget as SVGElement)
-      .closest('.graph-wrap')!
-      .getBoundingClientRect();
+      .closest('.graph-wrap')!.getBoundingClientRect();
     this.hoveredAnomaly = anomaly;
     this.tooltipX = event.clientX - rect.left + 12;
     this.tooltipY = event.clientY - rect.top  - 8;
   }
 
-  onDotLeave() {
-    this.hoveredAnomaly = null;
-  }
+  onDotLeave() { this.hoveredAnomaly = null; }
 }

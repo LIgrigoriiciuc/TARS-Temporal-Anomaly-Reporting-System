@@ -1,0 +1,22 @@
+@if (show()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div class="beveled-outset p-8 text-center max-w-sm">
+
+      <div class="bg-gray-300 px-4 py-2 border-b border-gray-400 mb-4">
+        <span class="text-[10px] font-black uppercase tracking-widest">
+          ⚠ ACCESS_TERMINATED
+        </span>
+      </div>
+
+      <div class="px-4 py-2 flex flex-col gap-2">
+        <p class="text-xs font-mono font-bold text-red-700 uppercase">
+          Account deactivated by supervisor.
+        </p>
+        <p class="text-[9px] font-mono text-primary/50 animate-pulse">
+          Redirecting to login...
+        </p>
+      </div>
+
+    </div>
+  </div>
+}

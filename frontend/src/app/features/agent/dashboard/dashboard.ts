@@ -7,27 +7,27 @@ import { SubscriptionService, TimelineDTO } from '../../../core/services/subscri
 import { WebSocketService } from '../../../core/services/websocket';
 import { WS_TOPICS } from '../../../core/services/ws-topics';
 import { Sidebar } from '../../../shared/sidebar/sidebar';
+import { TerminationOverlay } from '../../../shared/termination-overlay/termination-overlay';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, Sidebar],
+  imports: [CommonModule, FormsModule, DatePipe, Sidebar, TerminationOverlay],
   templateUrl: './dashboard.html'
 })
 export class Dashboard implements OnInit, OnDestroy {
   // ── Signals ─────────────────────────────────────────────────────────────────
-  drafts            = signal<any[]>([]);
-  timelines         = signal<any[]>([]);
-  submittedReports  = signal<any[]>([]);
+  drafts           = signal<any[]>([]);
+  timelines        = signal<any[]>([]);
+  submittedReports = signal<any[]>([]);
 
   // Timeline setup (fresh accounts)
   needsTimelineSetup = signal(false);
   allTimelines       = signal<TimelineDTO[]>([]);
   setupLoading       = signal(false);
   setupError         = signal('');
-  draftError        = signal('');
-  submitError       = signal('');
-  accountTerminated = signal(false);
+  draftError         = signal('');
+  submitError        = signal('');
 
   // ── State ────────────────────────────────────────────────────────────────────
   email            = localStorage.getItem('email') || '';
@@ -67,9 +67,7 @@ export class Dashboard implements OnInit, OnDestroy {
     const userId = localStorage.getItem('userId');
     if (userId) {
       this.wsService.connect(() => {
-        this.wsService.subscribe(WS_TOPICS.userDeactivated(userId), () => {
-          this.handleAccountTermination();
-        });
+        // userDeactivated is now handled by TerminationOverlay component
         this.wsService.subscribe(WS_TOPICS.analysisResult(userId), (body: string) => {
           this.handleAnalysisResult(body);
         });
@@ -79,7 +77,11 @@ export class Dashboard implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     clearInterval(this.pollingInterval);
-    this.wsService.disconnect();
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      this.wsService.unsubscribe(WS_TOPICS.analysisResult(userId));
+    }
+    // don't disconnect — singleton shared across pages
   }
 
   // ── Data loading ─────────────────────────────────────────────────────────────
@@ -149,7 +151,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.draft = { description: '', year: null, keywords: '', timelineId: null };
   }
 
-  // ── Submission (UC-05 / UC-07) ────────────────────────────────────────────────
+  // ── Submission ────────────────────────────────────────────────────────────────
 
   commitReport() {
     const payload = this.buildPayload();
@@ -176,7 +178,7 @@ export class Dashboard implements OnInit, OnDestroy {
     });
   }
 
-  // ── WebSocket handlers ────────────────────────────────────────────────────────
+  // ── Subscription setup ────────────────────────────────────────────────────────
 
   checkSubscriptionSetup() {
     this.subService.getTimelines().subscribe({
@@ -197,7 +199,7 @@ export class Dashboard implements OnInit, OnDestroy {
       next: () => {
         this.needsTimelineSetup.set(false);
         this.setupLoading.set(false);
-        this.loadTimelines(); // refresh report form dropdown
+        this.loadTimelines();
       },
       error: (err: any) => {
         this.setupError.set(err?.error?.message || 'Failed to set timeline.');
@@ -206,10 +208,11 @@ export class Dashboard implements OnInit, OnDestroy {
     });
   }
 
+  // ── WebSocket handlers ────────────────────────────────────────────────────────
+
   private handleAnalysisResult(body: string) {
     try {
       const updated = JSON.parse(body);
-      // Replace the matching report in the list with the server's full updated DTO
       this.submittedReports.update(reports =>
         reports.map(r => r.id === updated.id ? updated : r)
       );
@@ -236,28 +239,29 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   private validatePayload(payload: any, errorSignal: 'draftError' | 'submitError'): boolean {
-    if (!payload.description && !payload.year && !payload.keywords) {
-      this[errorSignal].set('At least one field must be filled.');
-      return false;
+    if (errorSignal === 'submitError') {
+      // strict — all fields required for submission
+      if (!payload.description || !payload.year || !payload.keywords || !payload.timelineId) {
+        this[errorSignal].set('All fields are required to submit a report.');
+        return false;
+      }
+    } else {
+      // lenient — at least one field for drafts
+      if (!payload.description && !payload.year && !payload.keywords) {
+        this[errorSignal].set('At least one field must be filled.');
+        return false;
+      }
     }
     this[errorSignal].set('');
     return true;
   }
 
   private handleAuthError(err: any) {
-    if (err.status === 401 || err.status === 403) this.handleAccountTermination();
-  }
-
-  private handleAccountTermination() {
-    this.accountTerminated.set(true);
-    setTimeout(() => {
-      clearInterval(this.pollingInterval);
+    if (err.status === 401 || err.status === 403) {
       localStorage.clear();
-      this.authService.logout().subscribe({
-        next : () => { this.wsService.disconnect(); window.location.href = '/login'; },
-        error: ()  => { this.wsService.disconnect(); window.location.href = '/login'; }
-      });
-    }, 3000);
+      this.wsService.disconnect();
+      window.location.href = '/login';
+    }
   }
 
   logout() {

@@ -19,6 +19,7 @@ export class WebSocketService {
     this.client = new Client({
       webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
       onConnect: () => {
+        console.log('WS CONNECTED');
         // Flush anything that was subscribed before the connection was ready
         for (const { topic, handler } of this.pendingSubscriptions) {
           this.doSubscribe(topic, handler);
@@ -26,6 +27,8 @@ export class WebSocketService {
         this.pendingSubscriptions = [];
         onConnect?.();
       },
+      onDisconnect: () => console.log('WS DISCONNECTED'),  // ← add
+      onStompError: (frame) => console.error('STOMP ERROR', frame),  // ← add
       reconnectDelay: 5000,
     });
 

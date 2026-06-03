@@ -4,7 +4,7 @@
 <!-- Top Navigation -->
 <header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
   <span class="text-base font-black tracking-tight uppercase">TARS | TIMELINE_GRAPH</span>
-  <span class="text-[9px] font-bold font-mono opacity-70">UC-09 // ANOMALY_VISUALIZATION</span>
+  <span class="text-[9px] font-bold font-mono opacity-70">ANOMALY_VISUALIZATION</span>
 </header>
 
 <main class="ml-44 p-4 mb-12">
@@ -219,10 +219,14 @@
 
 <!-- Status bar -->
 <footer class="fixed bottom-0 left-0 w-full h-10 flex items-center px-4 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary gap-6">
-  <span class="flex items-center gap-2">
-    <span class="w-3 h-3 bg-green-500 border border-green-900"></span>
-    SYSTEM: ONLINE
-  </span>
   <span class="opacity-50">UTC SYNC: ACTIVE</span>
   <span class="opacity-50">BUILD_94.08.12</span>
 </footer>
+<!-- only renders for agents, supervisor has no userId deactivation risk -->
+@if (role === 'agent') {
+  <app-termination-overlay></app-termination-overlay>
+}
+
+@if (role === 'supervisor') {
+  <app-alert-toasts></app-alert-toasts>
+}

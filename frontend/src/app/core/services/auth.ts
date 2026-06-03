@@ -25,17 +25,12 @@ export class AuthService {
         localStorage.clear();
         this.router.navigate(['/login']);
       }),
-      // UC-02 E2 — network error: server unreachable, force local cleanup anyway
       catchError(() => {
         localStorage.clear();
         this.router.navigate(['/login']);
         return of(null);
       })
     );
-  }
-
-  getRole(): string | null {
-    return localStorage.getItem('role');
   }
 
   isLoggedIn(): boolean {

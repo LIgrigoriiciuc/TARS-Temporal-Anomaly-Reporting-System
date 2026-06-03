@@ -6,63 +6,55 @@ import { SubscriptionService, SubscriptionDTO, TimelineDTO } from '../../core/se
 import { WebSocketService } from '../../core/services/websocket';
 import { WS_TOPICS } from '../../core/services/ws-topics';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+import { TerminationOverlay } from '../../shared/termination-overlay/termination-overlay';
 
 @Component({
   selector: 'app-subscription',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar],
+  imports: [CommonModule, FormsModule, Sidebar, TerminationOverlay],
   templateUrl: './subscription.html'
 })
 export class SubscriptionPage implements OnInit, OnDestroy {
-  subscription = signal<SubscriptionDTO | null>(null);
-  timelines    = signal<TimelineDTO[]>([]);
-  loading      = signal(true);
-  error        = signal('');
-  upgradeError = signal('');
-  cancelError  = signal('');
-
-  // Success banner after Stripe redirect
-  justUpgraded = signal(false);
-
-  // Billing toggle
+  subscription      = signal<SubscriptionDTO | null>(null);
+  timelines         = signal<TimelineDTO[]>([]);
+  loading           = signal(true);
+  error             = signal('');
+  upgradeError      = signal('');
+  cancelError       = signal('');
+  justUpgraded      = signal(false);
   billingCycle: 'MONTHLY' | 'ANNUAL' = 'MONTHLY';
-
-  // Cancel confirmation
   showCancelConfirm = signal(false);
   cancelMessage     = signal('');
-
-  // Timeline picker — shown when PRO upgrade just completed and slots remain
   showTimelinePicker = signal(false);
-  pickerLoading      = signal(false);
-  pickerError        = signal('');
+  pickerLoading     = signal(false);
+  pickerError       = signal('');
 
-  // How many more timelines can be added
   slotsRemaining = computed(() => {
     const sub = this.subscription();
     if (!sub) return 0;
     const accessible = this.timelines().filter(t => t.accessible).length;
-    if (sub.plan === 'ENTERPRISE') return 0; // all auto-granted
+    if (sub.plan === 'ENTERPRISE') return 0;
     return Math.max(0, sub.timelinesAllowed - accessible);
   });
 
   readonly plans = [
     {
-      key        : 'PRO',
-      label      : 'PROFESSIONAL',
-      monthly    : 49,
-      annual     : 39,
-      timelines  : 5,
-      reports    : 200,
-      features   : ['5 timeline slots', '200 reports/month', 'AI analysis priority'],
+      key     : 'PRO',
+      label   : 'PROFESSIONAL',
+      monthly : 49,
+      annual  : 39,
+      timelines: 5,
+      reports : 200,
+      features: ['5 timeline slots', '200 reports/month', 'AI analysis priority'],
     },
     {
-      key        : 'ENTERPRISE',
-      label      : 'ENTERPRISE',
-      monthly    : 299,
-      annual     : 249,
-      timelines  : -1,
-      reports    : -1,
-      features   : ['Unlimited timelines', 'Unlimited reports', 'Full temporal override'],
+      key     : 'ENTERPRISE',
+      label   : 'ENTERPRISE',
+      monthly : 299,
+      annual  : 249,
+      timelines: -1,
+      reports : -1,
+      features: ['Unlimited timelines', 'Unlimited reports', 'Full temporal override'],
     }
   ];
 
@@ -75,14 +67,13 @@ export class SubscriptionPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Check if redirected back from Stripe success
     this.route.queryParams.subscribe(params => {
       if (params['upgraded'] === 'true') this.justUpgraded.set(true);
     });
 
     this.load();
+    this.wsService.connect();
 
-    // WS: subscription activated by webhook
     this.wsService.subscribe(WS_TOPICS.subscriptionUpdated(this.agentId), (body: string) => {
       try {
         const updated: SubscriptionDTO = JSON.parse(body);
@@ -109,9 +100,6 @@ export class SubscriptionPage implements OnInit, OnDestroy {
         this.subscription.set(sub);
         this.loadTimelines();
         this.loading.set(false);
-
-        // Show picker if PRO/ENTERPRISE with slots remaining,
-        // regardless of whether webhook arrived yet
         if (sub.plan === 'PRO' && this.slotsRemaining() > 0) {
           this.showTimelinePicker.set(true);
         }
@@ -126,66 +114,38 @@ export class SubscriptionPage implements OnInit, OnDestroy {
     });
   }
 
-  // ── Upgrade ──────────────────────────────────────────────────────────────────
-
   upgrade(planKey: string) {
     this.upgradeError.set('');
     this.subService.upgrade(planKey, this.billingCycle).subscribe({
       next : (res) => window.location.href = res.checkoutUrl,
-      error: (err) => {
-        this.upgradeError.set(err?.error?.message || 'Payment service unavailable. Try again.');
-      }
+      error: (err) => this.upgradeError.set(err?.error?.message || 'Payment service unavailable. Try again.')
     });
   }
-
-  // ── Cancel ───────────────────────────────────────────────────────────────────
 
   confirmCancel() {
     this.cancelError.set('');
     this.subService.cancel().subscribe({
-      next: (res) => {
-        this.cancelMessage.set(res.message);
-        this.showCancelConfirm.set(false);
-        this.load();
-      },
-      error: (err) => {
-        this.cancelError.set(err?.error?.message || 'Cancellation failed. Try again.');
-        this.showCancelConfirm.set(false);
-      }
+      next: (res) => { this.cancelMessage.set(res.message); this.showCancelConfirm.set(false); this.load(); },
+      error: (err) => { this.cancelError.set(err?.error?.message || 'Cancellation failed. Try again.'); this.showCancelConfirm.set(false); }
     });
   }
 
-  // ── Timeline picker ───────────────────────────────────────────────────────────
-
   addTimeline(timeline: TimelineDTO) {
-    if (timeline.accessible) return;
-    if (this.slotsRemaining() <= 0) return;
+    if (timeline.accessible || this.slotsRemaining() <= 0) return;
     this.pickerError.set('');
     this.pickerLoading.set(true);
     this.subService.addTimeline(timeline.id).subscribe({
       next: () => {
         this.loadTimelines();
         this.pickerLoading.set(false);
-        // Close picker when all slots filled
-        if (this.slotsRemaining() <= 1) { // will be 0 after this update
-          setTimeout(() => this.showTimelinePicker.set(false), 400);
-        }
+        if (this.slotsRemaining() <= 1) setTimeout(() => this.showTimelinePicker.set(false), 400);
       },
-      error: (err) => {
-        this.pickerError.set(err?.error?.message || 'Failed to add timeline.');
-        this.pickerLoading.set(false);
-      }
+      error: (err) => { this.pickerError.set(err?.error?.message || 'Failed to add timeline.'); this.pickerLoading.set(false); }
     });
   }
 
-  price(plan: any): number {
-    return this.billingCycle === 'MONTHLY' ? plan.monthly : plan.annual;
-  }
-
-  isCurrentPlan(planKey: string): boolean {
-    return this.subscription()?.plan === planKey;
-  }
-
+  price(plan: any): number { return this.billingCycle === 'MONTHLY' ? plan.monthly : plan.annual; }
+  isCurrentPlan(planKey: string): boolean { return this.subscription()?.plan === planKey; }
   isDowngrade(planKey: string): boolean {
     const order = { FREE: 0, PRO: 1, ENTERPRISE: 2 };
     const current = this.subscription()?.plan ?? 'FREE';

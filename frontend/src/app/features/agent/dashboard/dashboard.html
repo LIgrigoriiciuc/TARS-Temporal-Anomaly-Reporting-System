@@ -30,24 +30,6 @@
   </div>
 }
 
-<!-- Account terminated overlay -->
-@if (accountTerminated()) {
-  <div class="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center">
-    <div class="beveled-outset w-full max-w-[400px] mx-4">
-      <header class="h-8 bg-red-800 px-3 flex items-center border-b-2 border-red-950">
-        <span class="font-bold text-[11px] uppercase tracking-widest text-white">TARS // SECURITY_ALERT</span>
-      </header>
-      <div class="p-6 bg-[#d1d5db] space-y-3">
-        <p class="text-[11px] font-black uppercase tracking-tight">ACCESS_TERMINATED</p>
-        <p class="text-[10px] font-mono text-primary/70">Your account has been deactivated by a supervisor. You will be disconnected in 3 seconds.</p>
-        <div class="beveled-inset px-2 py-1">
-          <p class="text-red-800 text-[10px] font-bold font-mono animate-pulse">! SEVERING_CONNECTION...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-}
-
 <!-- Top Navigation -->
 <header class="bg-[#d1d5db] border-b-2 border-white flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50 shadow-[0_2px_0_#4b5563]">
   <span class="text-base font-black tracking-tight uppercase">TARS | FIELD_MODULE</span>
@@ -259,7 +241,7 @@
                 <!-- ── AI Analysis Result ──────────────────────────────────── -->
                 @if (report.analysis) {
                   <div class="border-t-2 border-gray-400 pt-3 flex flex-col gap-2">
-                    <p class="text-[10px] font-black uppercase tracking-widest">AI_ANALYSIS // UC-08</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest">AI_ANALYSIS</p>
 
                     <!-- Verdict -->
                     <div class="beveled-inset px-3 py-2">
@@ -439,10 +421,7 @@
 
 <!-- Status bar -->
 <footer class="fixed bottom-0 left-0 w-full h-10 flex items-center px-4 bg-[#d1d5db] border-t-2 border-white shadow-[0_-2px_0_#4b5563] text-[10px] font-bold uppercase text-primary gap-6">
-  <span class="flex items-center gap-2">
-    <span class="w-3 h-3 bg-green-500 border border-green-900"></span>
-    SYSTEM: ONLINE
-  </span>
   <span class="opacity-50">UTC SYNC: ACTIVE</span>
   <span class="opacity-50">BUILD_94.08.12</span>
 </footer>
+<app-termination-overlay></app-termination-overlay>

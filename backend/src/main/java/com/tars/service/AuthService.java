@@ -31,26 +31,24 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     @Transactional
     public LoginResponseDTO login(LoginRequestDTO dto, HttpServletResponse response) {
-        // Step 1: load user from DB
         User user = userRepository.findByEmail(dto.getEmail()).orElseThrow(() -> {
             log.warn("LOGIN_FAILURE | user={} | reason=User not found", dto.getEmail());
             return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         });
-        // Step 2: verify password with BCrypt
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             log.warn("LOGIN_FAILURE | user={} | reason=Bad credentials", dto.getEmail());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
-        // Step 3: check account status
+        // check account status
         if (user.getStatus() == UserStatus.INACTIVE) {
             log.warn("LOGIN_FAILURE | user={} | reason=Account inactive", dto.getEmail());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is inactive");
         }
-        // Step 4: generate JWT
+        // generate JWT
         String jwt = jwtUtils.generateJwtTokenForUser(user);
-        // Step 5: set HttpOnly cookie
+        // set HttpOnly cookie
         Cookie cookie = getCookie(jwt);
-        //From this point on, every request the browser makes to localhost:8080 includes the cookie automatically in the Cookie header, and the filter reads it
+        // From this point on, every request the browser makes to localhost:8080 includes the cookie automatically in the Cookie header, and the filter reads it
         // the token is never touched in Angular; the browser handles it invisibly
         response.addCookie(cookie);
         log.info("LOGIN_SUCCESS | user={}", user.getEmail());
@@ -82,7 +80,7 @@ public class AuthService {
                     tokenDenylistService.blacklistToken(jwt, timeLeftMs);
                 }
             } catch (Exception e) {
-                // UC-02 E1 — Redis unreachable: token cannot be blacklisted server-side,
+                // Redis unreachable: token cannot be blacklisted server-side,
                 // but cookie is still cleared below so the browser session ends.
                 // Token remains valid until natural expiry.
                 log.error("DENYLIST_FAILURE | token could not be blacklisted | {}", e.getMessage());

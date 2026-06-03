@@ -23,7 +23,6 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final TimelineRepository timelineRepository;
-    private final AnomalyAnalysisRepository analysisRepository;
     private final SubscriptionService subscriptionService;
     private final TimelineAccessService timelineAccessService;
     private final ApplicationEventPublisher eventPublisher;
@@ -34,9 +33,13 @@ public class ReportService {
 
     @Transactional
     public ObservationReport submitReport(ObservationReport report, Agent agent, Long timelineId) {
+        if (report.getDescription() == null || report.getDescription().isBlank() ||
+                report.getYear() == null ||
+                report.getKeywords() == null || report.getKeywords().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All fields are required to submit a report");
+        }
         Timeline timeline = timelineRepository.findById(timelineId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
-
         subscriptionService.enforceReportLimit(agent);
         timelineAccessService.enforceTimelineAccess(agent, timelineId);
 
@@ -89,7 +92,7 @@ public class ReportService {
     public List<ObservationReport> getAgentSubmittedReports(Long agentId) {
         return reportRepository.findByAgentIdAndStatusInOrderByIdDesc(
                 agentId,
-                List.of(ReportStatus.PENDING_ANALYSIS, ReportStatus.CONFIRMED, ReportStatus.REJECTED)
+                List.of(ReportStatus.PENDING_ANALYSIS, ReportStatus.CONFIRMED, ReportStatus.REJECTED, ReportStatus.FLAGGED)
         );
     }
 

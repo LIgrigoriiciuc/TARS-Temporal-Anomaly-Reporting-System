@@ -78,7 +78,7 @@ class OpenAIServiceTest {
 
         // Default: report found, no historical context, no existing anomalies
         when(reportRepository.findById(99L)).thenReturn(Optional.of(report));
-        when(reportRepository.findHistoricalContext(anyLong(), anyInt(), anyInt(), any(), anyLong()))
+        when(reportRepository.findHistoricalContext(anyLong(), anyInt(), anyInt(), anyLong()))
                 .thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());

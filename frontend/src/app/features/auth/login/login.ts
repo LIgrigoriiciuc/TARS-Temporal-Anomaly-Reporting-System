@@ -21,7 +21,7 @@ export class Login {
   }
 
   onLogin() {
-    if (this.isLoading) return; // previne double-submit
+    if (this.isLoading) return;
     this.isLoading = true;
 
     localStorage.removeItem('role');
@@ -43,10 +43,8 @@ export class Login {
           this.errorMessage.set('ACCOUNT_TERMINATED // Access denied');
         } else if (err.status === 401) {
           this.errorMessage.set('Invalid credentials');
-        } else if (err.status === 503) {
-          this.errorMessage.set('SYSTEM_UNAVAILABLE // Retry later');
         } else {
-          this.errorMessage.set('Connection error');
+          this.errorMessage.set('SYSTEM_UNAVAILABLE // Retry later');
         }
       }
     });

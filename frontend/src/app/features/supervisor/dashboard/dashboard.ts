@@ -8,12 +8,12 @@ import { WebSocketService } from '../../../core/services/websocket';
 import { WS_TOPICS } from '../../../core/services/ws-topics';
 import { Sidebar } from '../../../shared/sidebar/sidebar';
 import { AlertToasts } from '../../../shared/alert-toasts/alert-toasts';
+import {TerminationOverlay} from '../../../shared/termination-overlay/termination-overlay';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar, AlertToasts],
-  templateUrl: './dashboard.html'
+  imports: [CommonModule, FormsModule, Sidebar, AlertToasts, TerminationOverlay],  templateUrl: './dashboard.html'
 })
 export class Dashboard implements OnInit, OnDestroy {
   users           = signal<any[]>([]);
@@ -70,6 +70,8 @@ export class Dashboard implements OnInit, OnDestroy {
     this.userService.createUser(payload).subscribe({
       next : () => this.loadUsers(),
       error: (err) => {
+        console.log('STATUS:', err.status);
+        console.log('ERROR BODY:', err.error);
         this.newUser = payload;
         if (err.status === 409) {
           this.createError.set('Email already registered');

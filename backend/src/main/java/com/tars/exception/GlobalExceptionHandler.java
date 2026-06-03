@@ -31,7 +31,6 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // UC-01 E2 — database unreachable (e.g. CannotGetJdbcConnectionException)
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<Map<String, Object>> handleDatabase(DataAccessException ex, HttpServletRequest request) {
         log.error("DB_UNREACHABLE | path={} | {}", request.getRequestURI(), ex.getMessage());
@@ -52,7 +51,6 @@ public class GlobalExceptionHandler {
                 "message", "Internal server error"
         ));
     }
-    // NFR12 — @Valid fails on request body
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();
@@ -61,9 +59,7 @@ public class GlobalExceptionHandler {
         );
         log.warn("VALIDATION_FAILURE | path={} | fields={}", request.getRequestURI(), errors.keySet());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .header("Access-Control-Allow-Origin", "http://localhost:4200")
-                .header("Access-Control-Allow-Credentials", "true")
-                .body(Map.of(
+                .body(Map.of(                          // ← no manual headers needed
                         "timestamp", LocalDateTime.now().toString(),
                         "status", 400,
                         "errors", errors
