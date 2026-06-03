@@ -165,12 +165,12 @@
 
 **Alternative Flows**
 - A1 Required fields missing: Agent submits with no fields filled. TARS displays "At least one field must be filled" and blocks submission.
-- A2 Duplicate report: Agent submits a report for a timeline and year they already have an active report for. Backend returns 409; TARS displays the conflict message.
+- A2 Duplicate report: Agent submits a report for a timeline and year they already have an active report for (PENDING_ANALYSIS or CONFIRMED status). Backend returns 409; TARS displays the conflict message.
 
 **Exceptions**
 - E1 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
 - E2 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
-- E3 Gemini API unavailable: Report is saved successfully but analysis fails silently. Report remains in PENDING_ANALYSIS status indefinitely (no retry implemented).
+- E3 OpenAI API unavailable: Report is saved successfully but analysis fails. Analysis is saved with status FAILED and report is marked REJECTED. Report is not retried automatically.
 - E4 Database Unreachable: `DataAccessException` caught by `GlobalExceptionHandler`, returns 503.
 
 ---
@@ -239,15 +239,15 @@
 ## UC-08: AI Analysis of New Anomaly
 | | |
 |---|---|
-| **Primary actors** | Gemini API |
+| **Primary actors** | OpenAI API (GPT-4o-mini) |
 | **Secondary actors** | Database |
-| **Description** | Triggered automatically when a new observation report is submitted (UC-05). Gemini API analyzes the observation and returns a structured result. ENTERPRISE agents are routed to a dedicated higher-capacity thread pool for priority processing. |
+| **Description** | Triggered automatically when a new observation report is submitted (UC-05). OpenAI API analyzes the observation and returns a structured result. ENTERPRISE agents are routed to a dedicated higher-capacity thread pool for priority processing. |
 | **Trigger** | TARS saves a new observation report with status PENDING_ANALYSIS (auto-triggered from UC-05, step 7). |
 
 **Preconditions**
 - PRE-1. Observation report saved in the database with status PENDING_ANALYSIS.
-- PRE-2. Gemini API is available and responding.
-- PRE-3. Gemini API key is configured and valid on the backend.
+- PRE-2. OpenAI API is available and responding.
+- PRE-3. OpenAI API key is configured and valid on the backend.
 
 **Postconditions**
 - POST-1. AI analysis saved in the database linked to the observation report.
@@ -255,21 +255,22 @@
 - POST-3. Analysis result pushed to the agent via WebSocket (`/topic/analysis/{agentId}`).
 
 **Normal Flow**
-1. TARS queries the database for existing reports from the same timeline within a ±50 year window, filtered by matching keywords, excluding the submitting agent's own reports.
-2. TARS builds the Gemini prompt: analyst role definition, security directive against prompt injection, related historical reports, new report data, expected JSON response schema.
+1. TARS queries the database for existing reports from the same timeline within a ±100 year window, including all statuses (CONFIRMED, REJECTED, PENDING_ANALYSIS), excluding only the current report ID (not the entire agent's history).
+2. TARS builds the OpenAI prompt: analyst role definition, security directive against prompt injection, related historical reports, new report data, expected JSON response schema.
 3. ENTERPRISE requests are dispatched to `priorityExecutor` (4–8 threads); FREE and PRO requests to `standardExecutor` (2–4 threads).
-4. TARS sends the prompt to the Gemini API endpoint.
-5. Gemini returns a JSON response: `confirmed`, `type` (PAR/DUP/DEV/RFT/ERO/LOP), `paradoxRisk` (LOW/MEDIUM/HIGH/CRITICAL), `contributingReportIds`, `explanation`, `injectionDetected`.
+4. TARS sends the prompt to the OpenAI API endpoint via `OpenAIHttpClient`.
+5. OpenAI returns a JSON response: `confirmed`, `type` (PAR/DUP/DEV/RFT/ERO/LOP), `paradoxRisk` (LOW/MEDIUM/HIGH/CRITICAL), `contributingReportIds`, `explanation`, `injectionDetected`.
 6. TARS parses the JSON response.
-7. TARS saves the analysis and updates the report status (CONFIRMED or REJECTED). If `confirmed = true`, TARS links to an existing anomaly or creates a new one.
+7. TARS saves the analysis and updates the report status (CONFIRMED or REJECTED). If `confirmed = true`, TARS links to an existing anomaly (if contributing report sets overlap ≥67%) or creates a new one.
 8. TARS pushes the full updated report DTO to the agent via WebSocket.
 
 **Alternative Flows**
-- A1 Prompt injection detected: Gemini sets `injectionDetected: true`. TARS quarantines the report (status FLAGGED), saves the explanation, and pushes the result to the agent. No anomaly is created.
+- A1 Prompt injection detected: OpenAI sets `injectionDetected: true`. TARS quarantines the report (status FLAGGED), saves the explanation, and pushes the result to the agent. No anomaly is created.
 - A2 Non-JSON or malformed response: JSON parsing fails on the first attempt. TARS retries with a stricter prompt. If the second attempt also fails, the analysis is saved with status UNRESOLVED and the report is marked REJECTED.
+- A3 503 Service Unavailable: OpenAI returns 503 error. TARS implements exponential backoff retry (2s, 4s, 6s) up to 3 attempts before failing.
 
 **Exceptions**
-- E1 Gemini API unreachable or timeout: Exception caught in `doAnalyze`; analysis saved with status FAILED, result pushed to agent. Report is not retried automatically.
+- E1 OpenAI API unreachable or timeout: Exception caught in `doAnalyze`; analysis saved with status FAILED, result pushed to agent. Report is not retried automatically.
 
 ---
 
@@ -294,7 +295,7 @@
 1. TARS fetches all timelines via `GET /api/graph/timelines` — agents receive accessible flags, supervisors see all as accessible.
 2. TARS fetches anomaly data via `GET /api/graph/anomalies` with no filters applied.
 3. Angular renders the SVG graph: X axis = year (auto-scaled to data range), Y axis = timelines with confirmed anomalies.
-4. Each anomaly is displayed as a colored dot by paradox risk: LOW (light blue), MEDIUM (blue), HIGH (dark blue), CRITICAL (navy).
+4. Each anomaly is displayed as a colored dot by paradox risk: LOW (light green), MEDIUM (yellow), HIGH (orange), CRITICAL (red).
 5. Inaccessible timeline lanes are shown with a grey background and `⊘` prefix on the label.
 6. User hovers over a dot to see a tooltip: anomaly ID, year, type, paradox risk, timeline name.
 
@@ -387,6 +388,7 @@
 **Postconditions**
 - POST-1. Subscription record updated in the database with the new plan, billing cycle, and expiry date.
 - POST-2. New timeline quota and monthly report limit are immediately active.
+- POST-3. For ENTERPRISE upgrades: all timelines are automatically granted access.
 
 **Normal Flow**
 1. TARS displays the Subscription page: current plan, timelines used/allowed, reports used/allowed, renewal date.
@@ -398,10 +400,11 @@
 7. Stripe sends a webhook to the TARS backend; `activateSubscription()` updates the subscription record, sets expiry date, and calls `timelineAccessService.onUpgrade()`.
 8. TARS pushes the updated `SubscriptionDTO` to the agent via WebSocket (`/topic/subscription/{agentId}`).
 9. Agent is redirected back to `/subscription?upgraded=true`; TARS displays an upgrade confirmation banner.
-10. For PRO upgrades: TARS displays a timeline picker so the agent can select up to 5 timeline slots. For ENTERPRISE: all timelines are granted automatically.
+10. For ENTERPRISE upgrades: `onUpgrade()` automatically grants access to all timelines in the database. For PRO upgrades: existing active timelines are preserved; agent must manually add additional timelines via the timeline management interface (up to 5 total).
 
 **Alternative Flows**
 - A1 Payment declined or abandoned: Handled entirely by the Stripe-hosted page. Agent is returned to the Stripe form to retry or cancel. TARS receives no webhook and no changes are made.
+- A2 Already on ENTERPRISE: Agent attempts to upgrade from ENTERPRISE to PRO. Backend returns 400; TARS displays "Already on ENTERPRISE plan".
 
 **Exceptions**
 - E1 Stripe API timeout: `createCheckoutSession()` throws; TARS returns 503 and displays "Payment service unavailable. Try again."
@@ -426,7 +429,7 @@
 - POST-1. Stripe subscription is marked `cancel_at_period_end = true`.
 - POST-2. `cancellationScheduled = true` saved in the database.
 - POST-3. Agent retains current plan access until the billing cycle ends.
-- POST-4. When the period ends, Stripe fires `customer.subscription.deleted`; TARS reverts plan to FREE and deactivates all timelines beyond 1 via `onDowngradeToFree()`.
+- POST-4. When the period ends, Stripe fires `customer.subscription.deleted`; TARS reverts plan to FREE and deactivates all timelines beyond the first (oldest granted) via `onDowngradeToFree()`.
 
 **Normal Flow**
 1. TARS displays the Subscription page with a `CANCEL_SUBSCRIPTION` button (shown only for paid, non-cancelled plans).
@@ -439,6 +442,7 @@
 
 **Alternative Flows**
 - A1 Agent aborts confirmation: Agent clicks `ABORT` on the confirmation dialog. No changes are made.
+- A2 FREE plan attempt: Agent attempts to cancel a FREE plan. Backend returns 400; TARS displays "No active paid subscription to cancel".
 
 **Exceptions**
 - E1 Stripe API unavailable: `cancelSubscription()` throws; TARS returns 503 and displays "Cancellation failed. Try again." No cancellation is processed.
