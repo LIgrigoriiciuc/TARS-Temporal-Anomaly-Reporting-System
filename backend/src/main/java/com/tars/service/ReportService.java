@@ -2,13 +2,14 @@ package com.tars.service;
 
 import com.tars.model.Agent;
 import com.tars.model.ObservationReport;
+import com.tars.model.ReportSubmittedEvent;
 import com.tars.model.Timeline;
-import com.tars.model.enums.PlanType;
 import com.tars.model.enums.ReportStatus;
 import com.tars.repository.AnomalyAnalysisRepository;
 import com.tars.repository.ReportRepository;
 import com.tars.repository.TimelineRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,57 +24,37 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final TimelineRepository timelineRepository;
     private final AnomalyAnalysisRepository analysisRepository;
-    private final GeminiService geminiService;
     private final SubscriptionService subscriptionService;
     private final TimelineAccessService timelineAccessService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // -------------------------------------------------------------------------
     // UC-05 Submit Report
     // -------------------------------------------------------------------------
 
-    /**
-     * Saves the report as PENDING_ANALYSIS, commits, then fires async Gemini analysis.
-     * The @Transactional here ensures the report is fully committed to DB
-     * before GeminiService (running in another thread) tries to load it.
-     */
     @Transactional
     public ObservationReport submitReport(ObservationReport report, Agent agent, Long timelineId) {
         Timeline timeline = timelineRepository.findById(timelineId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Timeline not found"));
 
-        // Plan enforcement — check monthly report limit
         subscriptionService.enforceReportLimit(agent);
-
-        // Timeline access enforcement
         timelineAccessService.enforceTimelineAccess(agent, timelineId);
-
-        // Duplicate check — same agent, same timeline, same year
-        List<ObservationReport> duplicates = reportRepository.findDuplicateReport(
-                agent.getId(), timelineId, report.getYear()
-        );
-        if (!duplicates.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "You already have an active report for this timeline and year");
-        }
 
         report.setAgent(agent);
         report.setTimeline(timeline);
         report.setStatus(ReportStatus.PENDING_ANALYSIS);
 
         ObservationReport saved = reportRepository.save(report);
-
-        // Increment monthly report count
         agent.setMonthlyReportCount(agent.getMonthlyReportCount() + 1);
 
-        // NFR-11 — ENTERPRISE routed to priority executor, others to standard
-        dispatchAnalysis(saved.getId(), agent);
+        // Fire AFTER_COMMIT — Gemini thread won't start until report is in DB
+        eventPublisher.publishEvent(new ReportSubmittedEvent(saved.getId(), agent));
 
         return saved;
     }
 
     /**
      * If agent is resuming a draft and submitting it — promotes draft to submission.
-     * Deletes nothing; status change IS the promotion.
      */
     @Transactional
     public ObservationReport submitFromDraft(Long draftId, Long agentId, String description,
@@ -91,24 +72,10 @@ public class ReportService {
 
         ObservationReport saved = reportRepository.save(draft);
 
-        // NFR-11 — ENTERPRISE routed to priority executor, others to standard
-        dispatchAnalysis(saved.getId(), draft.getAgent());
+        // Fire AFTER_COMMIT — Gemini thread won't start until report is in DB
+        eventPublisher.publishEvent(new ReportSubmittedEvent(saved.getId(), draft.getAgent()));
 
         return saved;
-    }
-
-    /**
-     * Routes analysis to the appropriate thread pool based on the agent's plan.
-     * ENTERPRISE → priorityExecutor (4–8 threads)
-     * FREE / PRO  → standardExecutor (2–4 threads)
-     */
-    private void dispatchAnalysis(Long reportId, Agent agent) {
-        PlanType plan = subscriptionService.getOrCreateFreeSubscription(agent).getPlan();
-        if (plan == PlanType.ENTERPRISE) {
-            geminiService.analyzeReportPriority(reportId);
-        } else {
-            geminiService.analyzeReport(reportId);
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -116,24 +83,16 @@ public class ReportService {
     // -------------------------------------------------------------------------
 
     public List<ObservationReport> getAgentDrafts(Long agentId) {
-        return reportRepository.findByAgentIdAndStatus(agentId, ReportStatus.DRAFT);
+        return reportRepository.findByAgentIdAndStatusOrderByIdDesc(agentId, ReportStatus.DRAFT);
     }
 
-    /**
-     * All submitted reports — pending, confirmed, rejected.
-     * Excludes drafts.
-     */
     public List<ObservationReport> getAgentSubmittedReports(Long agentId) {
-        return reportRepository.findByAgentIdAndStatusIn(
+        return reportRepository.findByAgentIdAndStatusInOrderByIdDesc(
                 agentId,
                 List.of(ReportStatus.PENDING_ANALYSIS, ReportStatus.CONFIRMED, ReportStatus.REJECTED)
         );
     }
 
-    /**
-     * Single report — used for polling analysis result.
-     * Agent can only access their own reports.
-     */
     public ObservationReport getAgentReport(Long reportId, Long agentId) {
         return reportRepository.findByIdAndAgentId(reportId, agentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));

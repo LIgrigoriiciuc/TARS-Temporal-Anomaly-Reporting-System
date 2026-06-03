@@ -11,6 +11,8 @@ import com.tars.model.enums.BillingCycle;
 import com.tars.model.enums.PlanType;
 import com.tars.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +29,8 @@ import java.time.LocalDate;
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
-    private final TimelineAccessService timelineAccessService;
+
+    private TimelineAccessService timelineAccessService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${stripe.api.key}")
@@ -62,6 +65,11 @@ public class SubscriptionService {
     public static final int PRO_REPORTS = 200;
     public static final int ENTERPRISE_REPORTS = -1; // unlimited
 
+    @Lazy
+    @Autowired
+    public void setTimelineAccessService(TimelineAccessService timelineAccessService) {
+        this.timelineAccessService = timelineAccessService;
+    }
     /**
      * UC-12 — creates a Stripe Checkout session and returns the redirect URL.
      */

@@ -40,7 +40,8 @@ export class GraphPage implements OnInit, OnDestroy {
   tooltipX = 0;
   tooltipY = 0;
 
-  role = localStorage.getItem('role')?.toLowerCase() === 'supervisor' ? 'supervisor' : 'agent';
+  role: 'agent' | 'supervisor' =
+    localStorage.getItem('role')?.toLowerCase() === 'supervisor' ? 'supervisor' : 'agent';
 
   private resizeObserver?: ResizeObserver;
 
@@ -129,21 +130,21 @@ export class GraphPage implements OnInit, OnDestroy {
 
   dotFill(risk: string): string {
     switch (risk) {
-      case 'LOW'     : return '#bfdbfe';
-      case 'MEDIUM'  : return '#60a5fa';
-      case 'HIGH'    : return '#1d4ed8';
-      case 'CRITICAL': return '#0c4a6e';
-      default        : return '#bfdbfe';
+      case 'LOW'     : return '#bbf7d0'; // green
+      case 'MEDIUM'  : return '#fef08a'; // yellow
+      case 'HIGH'    : return '#fdba74'; // orange
+      case 'CRITICAL': return '#f87171'; // red
+      default        : return '#bbf7d0';
     }
   }
 
   dotStroke(risk: string): string {
     switch (risk) {
-      case 'LOW'     : return '#93c5fd';
-      case 'MEDIUM'  : return '#3b82f6';
-      case 'HIGH'    : return '#1e40af';
-      case 'CRITICAL': return '#082f49';
-      default        : return '#93c5fd';
+      case 'LOW'     : return '#16a34a'; // dark green
+      case 'MEDIUM'  : return '#ca8a04'; // dark yellow
+      case 'HIGH'    : return '#ea580c'; // dark orange
+      case 'CRITICAL': return '#dc2626'; // dark red
+      default        : return '#16a34a';
     }
   }
 

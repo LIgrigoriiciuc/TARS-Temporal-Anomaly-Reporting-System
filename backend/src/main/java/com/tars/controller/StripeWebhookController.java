@@ -1,5 +1,6 @@
 package com.tars.controller;
 
+import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -50,23 +51,29 @@ public class StripeWebhookController {
         switch (event.getType()) {
 
             case "checkout.session.completed" -> {
-                // Payment succeeded — activate subscription
-                Optional<StripeObject> stripeObject = event.getDataObjectDeserializer().getObject();
-                if (stripeObject.isPresent()) {
-                    Session session = (Session) stripeObject.get();
-                    Long agentId = Long.parseLong(session.getMetadata().get("agentId"));
-                    PlanType plan = PlanType.valueOf(session.getMetadata().get("plan"));
-                    BillingCycle billingCycle = BillingCycle.valueOf(session.getMetadata().get("billingCycle"));
+                log.info("StripeWebhook: checkout.session.completed received");
 
-                    subscriptionService.activateSubscription(
-                            session.getSubscription(),
-                            session.getCustomer(),
-                            agentId,
-                            plan,
-                            billingCycle
-                    );
-                    log.info("StripeWebhook: subscription activated for agent {}", agentId);
+                // Use raw JSON deserialization instead of getObject()
+                Session session = null;  // ← bypasses strict version checking
+                try {
+                    session = (Session) event.getDataObjectDeserializer()
+                            .deserializeUnsafe();
+                } catch (EventDataObjectDeserializationException e) {
+                    throw new RuntimeException(e);
                 }
+
+                Long agentId = Long.parseLong(session.getMetadata().get("agentId"));
+                PlanType plan = PlanType.valueOf(session.getMetadata().get("plan"));
+                BillingCycle billingCycle = BillingCycle.valueOf(session.getMetadata().get("billingCycle"));
+
+                log.info("StripeWebhook: metadata — agentId={}, plan={}, cycle={}",
+                        agentId, plan, billingCycle);
+
+                subscriptionService.activateSubscription(
+                        session.getSubscription(),
+                        session.getCustomer(),
+                        agentId, plan, billingCycle
+                );
             }
 
             case "customer.subscription.deleted" -> {

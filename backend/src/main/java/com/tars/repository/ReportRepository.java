@@ -19,39 +19,28 @@ public interface ReportRepository extends JpaRepository<ObservationReport, Long>
     List<ObservationReport> findByAgentIdAndStatusIn(Long agentId, List<ReportStatus> statuses);
 
     Optional<ObservationReport> findByIdAndAgentId(Long id, Long agentId);
+    List<ObservationReport> findByAgentIdAndStatusOrderByIdDesc(Long agentId, ReportStatus status);
 
-    /**
-     * UC-08 step 1 — fetch historical context to send to Gemini.
-     * Finds confirmed/rejected reports on the same timeline within a year window,
-     * optionally matching any of the submitted keywords.
-     *
-     * Called before building the Gemini prompt so the AI has relevant history.
-     * Results are NOT filtered by agent — the whole DB is context, agents don't see these IDs.
-     *
-     * yearFrom/yearTo = submitted year ± 50 (configurable in GeminiService)
-     * keyword matching is loose — LIKE on the combined keywords string
-     */
+    List<ObservationReport> findByAgentIdAndStatusInOrderByIdDesc(Long agentId, List<ReportStatus> statuses);
     /**
      * UC-08 — historical context for Gemini prompt.
-     * Excludes the submitting agent's own reports — agents cannot self-corroborate.
+     * Excludes only the current report — all other reports including same agent's
+     * other reports are included so Gemini has full context.
      */
     @Query("""
-        SELECT r FROM ObservationReport r
-        WHERE r.timeline.id = :timelineId
-        AND r.year BETWEEN :yearFrom AND :yearTo
-        AND r.status IN ('CONFIRMED', 'REJECTED', 'PENDING_ANALYSIS')
-        AND r.agent.id != :excludeAgentId
-        AND (:keyword IS NULL OR LOWER(r.keywords) LIKE LOWER(CONCAT('%', :keyword, '%')))
-        ORDER BY r.year ASC
-        """)
+    SELECT r FROM ObservationReport r
+    WHERE r.timeline.id = :timelineId
+    AND r.year BETWEEN :yearFrom AND :yearTo
+    AND r.status IN ('CONFIRMED', 'REJECTED', 'PENDING_ANALYSIS')
+    AND r.id != :excludeReportId
+    ORDER BY r.year ASC
+    """)
     List<ObservationReport> findHistoricalContext(
             @Param("timelineId") Long timelineId,
             @Param("yearFrom") int yearFrom,
             @Param("yearTo") int yearTo,
-            @Param("keyword") String keyword,
-            @Param("excludeAgentId") Long excludeAgentId
+            @Param("excludeReportId") Long excludeReportId
     );
-
     /**
      * Duplicate check — same agent, same timeline, same year, not a draft.
      * If result is non-empty, block submission with 409.

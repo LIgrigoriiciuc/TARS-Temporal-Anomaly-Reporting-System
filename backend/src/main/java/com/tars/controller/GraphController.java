@@ -10,10 +10,13 @@ import com.tars.service.TimelineAccessService;
 import com.tars.service.TimelineService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/graph")
@@ -33,14 +36,34 @@ public class GraphController {
      * GET /api/graph/anomalies?yearFrom=2000&yearTo=2100
      * GET /api/graph/anomalies?timelineId=1&paradoxRisk=HIGH&yearFrom=2040&yearTo=2060
      */
+    // GraphController.java — add agent check to getAnomalies
     @GetMapping("/anomalies")
     public ResponseEntity<List<AnomalyGraphDTO>> getAnomalies(
             @RequestParam(required = false) Long timelineId,
             @RequestParam(required = false) ParadoxRisk paradoxRisk,
             @RequestParam(required = false) Integer yearFrom,
-            @RequestParam(required = false) Integer yearTo) {
+            @RequestParam(required = false) Integer yearTo,
+            HttpServletRequest request) {
+
+        User user = (User) request.getAttribute("currentUser");
+
+        // Agents — restrict to their accessible timeline IDs
+        Set<Long> allowedIds = null;
+        if (user instanceof Agent agent) {
+            allowedIds = timelineAccessService.getAllTimelinesForAgent(agent)
+                    .stream()
+                    .filter(TimelineDTO::isAccessible)
+                    .map(TimelineDTO::getId)
+                    .collect(Collectors.toSet());
+
+            // If filtering by a specific timeline, check access
+            if (timelineId != null && !allowedIds.contains(timelineId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+
         return ResponseEntity.ok(
-                graphService.getGraphAnomalies(timelineId, paradoxRisk, yearFrom, yearTo)
+                graphService.getGraphAnomalies(timelineId, paradoxRisk, yearFrom, yearTo, allowedIds)
         );
     }
 

@@ -88,9 +88,10 @@ export class SubscriptionPage implements OnInit, OnDestroy {
         const updated: SubscriptionDTO = JSON.parse(body);
         this.subscription.set(updated);
         this.justUpgraded.set(true);
-        // Reload timelines — ENTERPRISE gets all, PRO needs picker
         this.loadTimelines();
-        if (updated.plan === 'PRO') this.showTimelinePicker.set(true);
+        if (updated.plan === 'PRO' && updated.timelinesAllowed > 0) {
+          this.showTimelinePicker.set(true);
+        }
       } catch (e) {
         console.warn('Failed to parse subscription WS message', e);
       }
@@ -108,8 +109,10 @@ export class SubscriptionPage implements OnInit, OnDestroy {
         this.subscription.set(sub);
         this.loadTimelines();
         this.loading.set(false);
-        // Show picker if PRO with slots remaining (e.g. came back from Stripe)
-        if (sub.plan === 'PRO' && this.justUpgraded()) {
+
+        // Show picker if PRO/ENTERPRISE with slots remaining,
+        // regardless of whether webhook arrived yet
+        if (sub.plan === 'PRO' && this.slotsRemaining() > 0) {
           this.showTimelinePicker.set(true);
         }
       },
