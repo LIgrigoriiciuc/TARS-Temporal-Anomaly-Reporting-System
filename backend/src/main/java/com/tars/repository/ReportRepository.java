@@ -23,8 +23,8 @@ public interface ReportRepository extends JpaRepository<ObservationReport, Long>
 
     List<ObservationReport> findByAgentIdAndStatusInOrderByIdDesc(Long agentId, List<ReportStatus> statuses);
     /**
-     * UC-08 — historical context for Gemini prompt.
-     * Excludes only the current report — all other reports including same agent's
+     * historical context for Gemini prompt.
+     * Excludes only the current report, all other reports including same agent's
      * other reports are included so Gemini has full context.
      */
     @Query("""
@@ -40,21 +40,5 @@ public interface ReportRepository extends JpaRepository<ObservationReport, Long>
             @Param("yearFrom") int yearFrom,
             @Param("yearTo") int yearTo,
             @Param("excludeReportId") Long excludeReportId
-    );
-    /**
-     * Duplicate check — same agent, same timeline, same year, not a draft.
-     * If result is non-empty, block submission with 409.
-     */
-    @Query("""
-        SELECT r FROM ObservationReport r
-        WHERE r.agent.id = :agentId
-        AND r.timeline.id = :timelineId
-        AND r.year = :year
-        AND r.status IN ('PENDING_ANALYSIS', 'CONFIRMED')
-        """)
-    List<ObservationReport> findDuplicateReport(
-            @Param("agentId") Long agentId,
-            @Param("timelineId") Long timelineId,
-            @Param("year") int year
     );
 }

@@ -15,7 +15,7 @@ public class AlertController {
 
     private final AlertService alertService;
 
-    // All unacknowledged alerts — shown on Supervisor login or panel open
+    // All unacknowledged alerts are shown on Supervisor login
     @GetMapping
     public ResponseEntity<List<AlertDTO>> getUnacknowledged() {
         return ResponseEntity.ok(alertService.getUnacknowledged());

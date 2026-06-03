@@ -123,9 +123,7 @@ class AuthServiceTest {
         long futureTime = System.currentTimeMillis() + 600000;
         when(jwtUtils.getExpirationDateFromToken(jwtToken)).thenReturn(new Date(futureTime));
         authService.logout(request, response);
-        // 1. Verify token denylist service was called
         verify(tokenDenylistService, times(1)).blacklistToken(eq(jwtToken), anyLong());
-        // 2. Verify deletion cookie was added
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         verify(response).addCookie(cookieCaptor.capture());
         Cookie clearanceCookie = cookieCaptor.getValue();

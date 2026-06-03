@@ -24,8 +24,8 @@ public class ReportController {
     private final ReportService reportService;
 
     // WebSocket push: /topic/analysis/{agentId}
-// Payload: SubmittedReportResponseDTO (same as GET /submitted/{id})
-// Triggered by: UC-08 after AI analysis completes
+    // Payload: SubmittedReportResponseDTO (same as GET /submitted/{id})
+    // Triggered by: UC-08 after AI analysis completes
     @PostMapping("/submit")
     public ResponseEntity<SubmittedReportResponseDTO> submitReport(
             @Valid @RequestBody SubmitReportRequestDTO dto,
@@ -36,10 +36,7 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ReportMapper.toSubmittedDto(saved));
     }
 
-    /**
-     * UC-07 — agent resumes a draft and submits it directly.
-     * PUT because we're promoting an existing resource (draft → submission).
-     */
+    //PUT because we're promoting an existing resource (draft -> submission).
     @PutMapping("/drafts/{id}/submit")
     public ResponseEntity<SubmittedReportResponseDTO> submitFromDraft(
             @PathVariable Long id,
@@ -54,14 +51,7 @@ public class ReportController {
         return ResponseEntity.ok(ReportMapper.toSubmittedDto(submitted));
     }
 
-    // -------------------------------------------------------------------------
-    // UC-07 Agent report lists
-    // -------------------------------------------------------------------------
-
-    /**
-     * All submitted reports (pending, confirmed, rejected) — not drafts.
-     * Agent polls this list or the single-report endpoint to check analysis status.
-     */
+    //All submitted reports (pending, confirmed, rejected) not drafts
     @GetMapping("/submitted")
     public ResponseEntity<List<SubmittedReportResponseDTO>> getSubmittedReports(HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
@@ -73,7 +63,7 @@ public class ReportController {
     }
 
     /**
-     * Single report — used for polling analysis result after submission.
+     * Single report
      * Returns the full report with embedded AnalysisResultDTO (null while pending).
      */
     @GetMapping("/submitted/{id}")
@@ -84,10 +74,6 @@ public class ReportController {
         ObservationReport report = reportService.getAgentReport(id, agent.getId());
         return ResponseEntity.ok(ReportMapper.toSubmittedDto(report));
     }
-
-    // -------------------------------------------------------------------------
-    // UC-06 / UC-07 Draft management
-    // -------------------------------------------------------------------------
 
     @PostMapping("/drafts")
     public ResponseEntity<DraftResponseDTO> saveDraft(
@@ -140,10 +126,6 @@ public class ReportController {
         reportService.deleteDraft(id, agent.getId());
         return ResponseEntity.noContent().build();
     }
-
-    // -------------------------------------------------------------------------
-    // Shared
-    // -------------------------------------------------------------------------
 
     @GetMapping("/timelines")
     public ResponseEntity<List<Timeline>> getTimelines() {

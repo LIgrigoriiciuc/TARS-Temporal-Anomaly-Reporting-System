@@ -52,7 +52,7 @@ public class OpenAIHttpClient {   // keeping the class name so GeminiService nee
             throw new RuntimeException("OpenAI API error: 503"); // reuse same message for retry logic
         }
         if (response.statusCode() == 401) {
-            throw new RuntimeException("OpenAI API unauthorized — check api key");
+            throw new RuntimeException("OpenAI API unauthorized - check api key");
         }
         if (response.statusCode() != 200) {
             log.error("OpenAI error body: {}", response.body()); // ← add this

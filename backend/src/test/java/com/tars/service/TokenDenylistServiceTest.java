@@ -17,7 +17,6 @@ import static org.mockito.Mockito.*;
 class TokenDenylistServiceTest {
     @Mock
     private StringRedisTemplate redisTemplate;
-    // mock the ValueOperations interface because .opsForValue() returns it
     @Mock
     private ValueOperations<String, String> valueOperations;
 
@@ -28,7 +27,6 @@ class TokenDenylistServiceTest {
     void blacklistToken_Success() {
         String token = "mock.jwt.token";
         long expirationMs = 5000L;
-        // when redisTemplate.opsForValue() is called, return the mocked operations object
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         tokenDenylistService.blacklistToken(token, expirationMs);
         verify(valueOperations, times(1)).set(token, "blacklisted", Duration.ofMillis(expirationMs));

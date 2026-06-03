@@ -42,8 +42,6 @@ public class SubscriptionService {
     @Value("${stripe.cancel.url}")
     private String cancelUrl;
 
-    // Stripe price IDs — create these in Stripe dashboard test mode
-    // Dashboard → Products → Add product → Add price → copy price ID
     @Value("${stripe.price.pro.monthly}")
     private String proPriceMonthly;
 
@@ -71,7 +69,7 @@ public class SubscriptionService {
         this.timelineAccessService = timelineAccessService;
     }
     /**
-     * UC-12 — creates a Stripe Checkout session and returns the redirect URL.
+     * creates a Stripe Checkout session and returns the redirect URL.
      */
     @Transactional
     public String createCheckoutSession(Agent agent, PlanType plan, BillingCycle billingCycle) {
@@ -153,7 +151,7 @@ public class SubscriptionService {
     }
 
     /**
-     * UC-13 — schedules cancellation at period end via Stripe API.
+     * schedules cancellation at period end via Stripe API.
      */
     @Transactional
     public void cancelSubscription(Agent agent) {
@@ -220,7 +218,7 @@ public class SubscriptionService {
     }
 
     /**
-     * Plan enforcement — called before submitting a report.
+     * Plan enforcement, called before submitting a report.
      */
     public void enforceReportLimit(Agent agent) {
         Subscription sub = getOrCreateFreeSubscription(agent);
@@ -230,10 +228,6 @@ public class SubscriptionService {
                     "Monthly report limit reached. Upgrade your plan to submit more reports.");
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     public Subscription getOrCreateFreeSubscription(Agent agent) {
         return subscriptionRepository.findByAgentId(agent.getId())

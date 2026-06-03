@@ -17,10 +17,6 @@ public class TimelineAccessController {
 
     private final TimelineAccessService timelineAccessService;
 
-    /**
-     * All timelines with accessible flag — used for report form dropdown
-     * and subscription page to show what's locked/unlocked.
-     */
     @GetMapping
     public ResponseEntity<List<TimelineDTO>> getTimelines(HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");

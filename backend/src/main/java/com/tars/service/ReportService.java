@@ -26,11 +26,6 @@ public class ReportService {
     private final SubscriptionService subscriptionService;
     private final TimelineAccessService timelineAccessService;
     private final ApplicationEventPublisher eventPublisher;
-
-    // -------------------------------------------------------------------------
-    // UC-05 Submit Report
-    // -------------------------------------------------------------------------
-
     @Transactional
     public ObservationReport submitReport(ObservationReport report, Agent agent, Long timelineId) {
         if (report.getDescription() == null || report.getDescription().isBlank() ||
@@ -50,7 +45,7 @@ public class ReportService {
         ObservationReport saved = reportRepository.save(report);
         agent.setMonthlyReportCount(agent.getMonthlyReportCount() + 1);
 
-        // Fire AFTER_COMMIT — Gemini thread won't start until report is in DB
+        // Fire AFTER_COMMIT so OPENAI thread won't start until report is in DB
         eventPublisher.publishEvent(new ReportSubmittedEvent(saved.getId(), agent));
 
         return saved;
@@ -75,15 +70,11 @@ public class ReportService {
 
         ObservationReport saved = reportRepository.save(draft);
 
-        // Fire AFTER_COMMIT — Gemini thread won't start until report is in DB
+        // Fire AFTER_COMMIT OPENAI thread won't start until report is in DB
         eventPublisher.publishEvent(new ReportSubmittedEvent(saved.getId(), draft.getAgent()));
 
         return saved;
     }
-
-    // -------------------------------------------------------------------------
-    // UC-07 Agent report lists
-    // -------------------------------------------------------------------------
 
     public List<ObservationReport> getAgentDrafts(Long agentId) {
         return reportRepository.findByAgentIdAndStatusOrderByIdDesc(agentId, ReportStatus.DRAFT);
@@ -100,10 +91,6 @@ public class ReportService {
         return reportRepository.findByIdAndAgentId(reportId, agentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report not found"));
     }
-
-    // -------------------------------------------------------------------------
-    // UC-06 Draft management
-    // -------------------------------------------------------------------------
 
     @Transactional
     public ObservationReport saveAsDraft(ObservationReport draft, Agent agent, Long timelineId) {

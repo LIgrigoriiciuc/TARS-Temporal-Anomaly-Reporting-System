@@ -105,34 +105,7 @@ public class TimelineAccessService {
     }
 
     /**
-     * Agent removes a timeline from their plan.
-     * FREE agents cannot remove their only timeline.
-     */
-    @Transactional
-    public void removeTimeline(Agent agent, Long timelineId) {
-        TimelineAccess access = timelineAccessRepository
-                .findByAgentIdAndTimelineId(agent.getId(), timelineId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Timeline access not found"));
-
-        PlanType plan = subscriptionService.getOrCreateFreeSubscription(agent).getPlan();
-
-        // FREE agents must keep their 1 timeline
-        if (plan == PlanType.FREE) {
-            long current = timelineAccessRepository.countByAgentIdAndActiveTrue(agent.getId());
-            if (current <= 1) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "FREE plan requires at least 1 active timeline");
-            }
-        }
-
-        access.setActive(false);
-        timelineAccessRepository.save(access);
-        log.info("TimelineAccessService: agent {} removed access to timeline {}", agent.getId(), timelineId);
-    }
-
-    /**
-     * Called on upgrade — PRO gets 5 slots, ENTERPRISE gets all.
+     * Called on upgradeM PRO gets 5 slots, ENTERPRISE gets all.
      * Existing active timelines are preserved.
      */
     @Transactional
@@ -162,7 +135,7 @@ public class TimelineAccessService {
     }
 
     /**
-     * Called on downgrade to FREE — keeps most recently granted timeline, deactivates rest.
+     * Called on downgrade to FREE, keeps most recently granted timeline, deactivates rest.
      */
     @Transactional
     public void onDowngradeToFree(Agent agent) {

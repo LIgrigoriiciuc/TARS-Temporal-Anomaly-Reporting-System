@@ -141,7 +141,6 @@ class AdminServiceTest {
         assertNotNull(result);
     }
 
-    //Verifies full list extraction and ascending numerical sorting behavior
     @Test
     void getAllUsers_ReturnsCombinedSortedList() {
         Agent a1 = new Agent(); a1.setId(3L);

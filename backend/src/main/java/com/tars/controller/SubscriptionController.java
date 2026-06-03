@@ -19,17 +19,14 @@ public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
 
-    // Current subscription info — shown on subscription page
+    // Current subscription info shown on subscription page
     @GetMapping
     public ResponseEntity<SubscriptionResponseDTO> getSubscription(HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");
         return ResponseEntity.ok(subscriptionService.getSubscriptionInfo(agent));
     }
 
-    /**
-     * UC-12 — returns Stripe Checkout URL.
-     * Frontend redirects agent to this URL.
-     */
+    //returns Stripe Checkout URL.
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, String>> upgrade(
             @Valid @RequestBody UpgradeRequestDTO dto,
@@ -42,9 +39,7 @@ public class SubscriptionController {
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 
-    /**
-     * UC-13 — schedules cancellation at period end.
-     */
+    //schedules cancellation at period end
     @PostMapping("/cancel")
     public ResponseEntity<Map<String, String>> cancel(HttpServletRequest request) {
         Agent agent = (Agent) request.getAttribute("currentUser");

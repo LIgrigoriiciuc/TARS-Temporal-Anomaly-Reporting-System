@@ -62,13 +62,8 @@ class SubscriptionServiceTest {
 
         when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        // TimelineAccessService is @Lazy setter-injected — wire it manually
         subscriptionService.setTimelineAccessService(timelineAccessService);
     }
-
-    // -------------------------------------------------------------------------
-    // getOrCreateFreeSubscription
-    // -------------------------------------------------------------------------
 
     @Test
     void getOrCreateFreeSubscription_existingSubscription_returnsIt() {
@@ -90,10 +85,6 @@ class SubscriptionServiceTest {
         verify(subscriptionRepository).save(any());
     }
 
-    // -------------------------------------------------------------------------
-    // enforceReportLimit
-    // -------------------------------------------------------------------------
-
     @Test
     void enforceReportLimit_freeUnderLimit_passes() {
         agent.setMonthlyReportCount(10);
@@ -104,7 +95,7 @@ class SubscriptionServiceTest {
 
     @Test
     void enforceReportLimit_freeAtLimit_throws403() {
-        agent.setMonthlyReportCount(20); // FREE limit
+        agent.setMonthlyReportCount(20);
         when(subscriptionRepository.findByAgentId(1L)).thenReturn(Optional.of(freeSub));
 
         assertThatThrownBy(() -> subscriptionService.enforceReportLimit(agent))
@@ -122,7 +113,7 @@ class SubscriptionServiceTest {
 
     @Test
     void enforceReportLimit_proAtLimit_throws403() {
-        agent.setMonthlyReportCount(200); // PRO limit
+        agent.setMonthlyReportCount(200);
         when(subscriptionRepository.findByAgentId(1L)).thenReturn(Optional.of(proSub));
 
         assertThatThrownBy(() -> subscriptionService.enforceReportLimit(agent))
@@ -141,10 +132,6 @@ class SubscriptionServiceTest {
 
         assertThatNoException().isThrownBy(() -> subscriptionService.enforceReportLimit(agent));
     }
-
-    // -------------------------------------------------------------------------
-    // activateSubscription
-    // -------------------------------------------------------------------------
 
     @Test
     void activateSubscription_updatesPlanAndExpiry() {
@@ -184,10 +171,6 @@ class SubscriptionServiceTest {
                 .hasMessageContaining("not found");
     }
 
-    // -------------------------------------------------------------------------
-    // revertToFree
-    // -------------------------------------------------------------------------
-
     @Test
     void revertToFree_clearsSubscriptionData() {
         when(subscriptionRepository.findByStripeSubscriptionId("sub_test123"))
@@ -211,10 +194,6 @@ class SubscriptionServiceTest {
         assertThatNoException().isThrownBy(() -> subscriptionService.revertToFree("unknown"));
         verify(subscriptionRepository, never()).save(any());
     }
-
-    // -------------------------------------------------------------------------
-    // Plan limits
-    // -------------------------------------------------------------------------
 
     @Test
     void getTimelineLimit_free_returns1() {
@@ -242,10 +221,6 @@ class SubscriptionServiceTest {
         assertThat(subscriptionService.getReportLimit(PlanType.ENTERPRISE)).isEqualTo(-1);
     }
 
-    // -------------------------------------------------------------------------
-    // getSubscriptionInfo
-    // -------------------------------------------------------------------------
-
     @Test
     void getSubscriptionInfo_returnsCorrectDto() {
         agent.setMonthlyReportCount(5);
@@ -259,10 +234,6 @@ class SubscriptionServiceTest {
         assertThat(dto.getTimelinesAllowed()).isEqualTo(5);
         assertThat(dto.isCancellationScheduled()).isFalse();
     }
-
-    // -------------------------------------------------------------------------
-    // createCheckoutSession guards
-    // -------------------------------------------------------------------------
 
     @Test
     void createCheckoutSession_upgradeToFree_throws400() {

@@ -10,9 +10,9 @@ import java.util.Optional;
 @Repository
 public interface AlertRepository extends JpaRepository<Alert, Long> {
 
-    // All unacknowledged alerts — shown in Supervisor notification panel
+    // All unacknowledged alerts shown in Supervisor notification panel
     List<Alert> findByAcknowledgedFalseOrderByCreatedAtDesc();
 
-    // Check if alert already exists for this anomaly — avoid duplicates
+    // Check if alert already exists for this anomaly avoid duplicates
     Optional<Alert> findByAnomalyId(Long anomalyId);
 }

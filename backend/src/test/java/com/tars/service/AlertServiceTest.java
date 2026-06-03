@@ -79,10 +79,6 @@ class AlertServiceTest {
         });
     }
 
-    // -------------------------------------------------------------------------
-    // triggerIfCritical
-    // -------------------------------------------------------------------------
-
     @Test
     void triggerIfCritical_highRisk_createsAlertAndPushes() {
         when(alertRepository.findByAnomalyId(1L)).thenReturn(Optional.empty());
@@ -149,10 +145,6 @@ class AlertServiceTest {
         verify(messagingTemplate, never()).convertAndSend(anyString(), (Object) any());
     }
 
-    // -------------------------------------------------------------------------
-    // getUnacknowledged
-    // -------------------------------------------------------------------------
-
     @Test
     void getUnacknowledged_returnsUnacknowledgedOnly() {
         Alert a1 = Alert.builder().anomaly(highRiskAnomaly).acknowledged(false).build();
@@ -177,10 +169,6 @@ class AlertServiceTest {
 
         assertThat(alertService.getUnacknowledged()).isEmpty();
     }
-
-    // -------------------------------------------------------------------------
-    // acknowledge
-    // -------------------------------------------------------------------------
 
     @Test
     void acknowledge_setsAcknowledgedTrue() {

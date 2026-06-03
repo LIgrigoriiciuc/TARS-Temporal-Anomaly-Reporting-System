@@ -1,12 +1,7 @@
 package com.tars.controller;
-
-import com.tars.config.JwtUtils;
-import com.tars.model.User;
 import com.tars.model.dto.LoginRequestDTO;
 import com.tars.model.dto.LoginResponseDTO;
 import com.tars.service.AuthService;
-import com.tars.service.TokenDenylistService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;

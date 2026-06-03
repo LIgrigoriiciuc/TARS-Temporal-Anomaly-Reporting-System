@@ -129,7 +129,7 @@ public class OpenAIService {
                 .map(r -> String.valueOf(r.getId()))
                 .collect(Collectors.joining(","));
 
-        // contributingReportIds from OpenAI — exclude current report (OpenAI shouldn't return it but guard anyway)
+        // contributingReportIds from OpenAI
         Set<Long> contributingSet = extractIdSet(parsed, "contributingReportIds");
         contributingSet.remove(report.getId());
         String contributingIds = contributingSet.stream()
@@ -145,7 +145,7 @@ public class OpenAIService {
         if (confirmed) {
             AnomalyType type = parseEnum(AnomalyType.class, parsed.path("type").asText());
             ParadoxRisk paradoxRisk = parseEnum(ParadoxRisk.class, parsed.path("paradoxRisk").asText());
-
+            // CHECK IF ANOMALY EXISTS ALREADY
             Anomaly anomaly = findOverlappingAnomaly(contributingSet, report.getTimeline().getId());
 
             if (anomaly != null) {
@@ -175,19 +175,15 @@ public class OpenAIService {
                         alertService.triggerIfCritical(anomaly);
                     }
                 }
-
                 anomalyRepository.save(anomaly);
                 analysis.setAnomaly(anomaly);
             } else {
-                // ── Create new anomaly — always unverified at birth ───────────
+                // Create new anomaly always unverified at birth
                 // A single report can never verify an anomaly by itself
                 String foundingIds = String.valueOf(report.getId());
                 if (!contributingIds.isBlank()) {
                     foundingIds = foundingIds + "," + contributingIds;
                 }
-
-                // Still check — if Gemini returned contributing IDs from other agents,
-                // the new anomaly could technically be verified at birth
                 Set<Long> foundingPool = parseIdSet(foundingIds);
                 boolean verifiedAtBirth = hasMultipleAgents(foundingPool);
 
@@ -266,8 +262,7 @@ public class OpenAIService {
 
     /**
      * Fetches historical reports on the same timeline and year window.
-     * Excludes only the current report itself — all other agents' reports
-     * (and current agent's other reports) are included so OpenAI has full context.
+     * Excludes only the current report itself.
      */
     private List<ObservationReport> fetchHistoricalContext(ObservationReport report) {
         if (report.getTimeline() == null || report.getYear() == null) return List.of();
@@ -284,8 +279,7 @@ public class OpenAIService {
                 report.getTimeline().getId(),
                 report.getYear() - YEAR_WINDOW,
                 report.getYear() + YEAR_WINDOW,
-
-                report.getId()  // exclude only THIS report, not the whole agent
+                report.getId()  // exclude only THIS report
         );
     }
 

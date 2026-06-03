@@ -77,19 +77,13 @@ class OpenAIServiceTest {
             return a;
         });
 
-        // Default: report found, no historical context, no existing anomalies
         when(reportRepository.findById(99L)).thenReturn(Optional.of(report));
         when(reportRepository.findHistoricalContext(anyLong(), anyInt(), anyInt(), anyLong()))
                 .thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
         when(anomalyRepository.findByTimelineId(anyLong())).thenReturn(List.of());
-        // Default: non-enterprise agent
         when(subscriptionRepository.findByAgentId(anyLong())).thenReturn(Optional.empty());
     }
-
-    // -------------------------------------------------------------------------
-    // 1. Confirmed — new unverified anomaly created
-    // -------------------------------------------------------------------------
 
     @Test
     void analyzeReport_confirmed_createsNewUnverifiedAnomaly() throws Exception {
@@ -116,7 +110,6 @@ class OpenAIServiceTest {
         assertThat(saved.getContributingReportIds()).contains("99");
 
         ArgumentCaptor<AnomalyAnalysis> analysisCaptor = ArgumentCaptor.forClass(AnomalyAnalysis.class);
-        // save called twice: once for PENDING, once for COMPLETED
         verify(analysisRepository, times(2)).save(analysisCaptor.capture());
         AnomalyAnalysis completed = analysisCaptor.getAllValues().get(1);
         assertThat(completed.getAnalysisStatus()).isEqualTo(AnalysisStatus.COMPLETED);
@@ -125,10 +118,6 @@ class OpenAIServiceTest {
 
         assertThat(report.getStatus()).isEqualTo(ReportStatus.CONFIRMED);
     }
-
-    // -------------------------------------------------------------------------
-    // 2. Not confirmed — report rejected, no anomaly
-    // -------------------------------------------------------------------------
 
     @Test
     void analyzeReport_notConfirmed_rejectsReportNoAnomaly() throws Exception {
@@ -153,10 +142,6 @@ class OpenAIServiceTest {
         assertThat(captor.getAllValues().get(1).getAnalysisStatus()).isEqualTo(AnalysisStatus.COMPLETED);
     }
 
-    // -------------------------------------------------------------------------
-    // 3. Confirmed — 75%+ overlap with existing anomaly, links to it
-    // -------------------------------------------------------------------------
-
     @Test
     void analyzeReport_confirmed_overlapsExistingAnomaly_linksInsteadOfCreating() throws Exception {
         when(openAIHttpClient.call(anyString())).thenReturn("""
@@ -169,7 +154,6 @@ class OpenAIServiceTest {
                 }
                 """);
 
-        // Existing verified anomaly — pool [12, 45, 78], intersection with [12, 45] = 100%
         Anomaly existing = Anomaly.builder()
                 .type(AnomalyType.PAR)
                 .paradoxRisk(ParadoxRisk.CRITICAL)
@@ -184,7 +168,6 @@ class OpenAIServiceTest {
 
         openAIService.analyzeReport(99L);
 
-        // No new anomaly saved
         verify(anomalyRepository, never()).save(argThat(a -> a.getId() == null));
 
         ArgumentCaptor<AnomalyAnalysis> captor = ArgumentCaptor.forClass(AnomalyAnalysis.class);
@@ -194,13 +177,8 @@ class OpenAIServiceTest {
         assertThat(report.getStatus()).isEqualTo(ReportStatus.CONFIRMED);
     }
 
-    // -------------------------------------------------------------------------
-    // 4. Overlaps unverified anomaly + new agent → promoted to verified
-    // -------------------------------------------------------------------------
-
     @Test
     void analyzeReport_corroboratesUnverifiedAnomaly_promotesToVerified() throws Exception {
-        // Current report submitted by agentTwo
         ReflectionTestUtils.setField(report, "agent", agentTwo);
 
         when(openAIHttpClient.call(anyString())).thenReturn("""
@@ -213,7 +191,6 @@ class OpenAIServiceTest {
                 }
                 """);
 
-        // Unverified anomaly founded by agentOne (report 77)
         Anomaly unverified = Anomaly.builder()
                 .type(AnomalyType.ERO)
                 .paradoxRisk(ParadoxRisk.HIGH)
@@ -233,13 +210,8 @@ class OpenAIServiceTest {
         when(reportRepository.findAllById(anySet())).thenReturn(List.of(foundingReport, report));
     }
 
-    // -------------------------------------------------------------------------
-    // 5. Self-report ID stripped from contributing set on analysis
-    // -------------------------------------------------------------------------
-
     @Test
     void analyzeReport_selfReportIdRemovedFromContributingIds() throws Exception {
-        // OpenAI includes the current report's own ID (99) — should be stripped
         when(openAIHttpClient.call(anyString())).thenReturn("""
                 {
                   "confirmed": true,
@@ -256,16 +228,11 @@ class OpenAIServiceTest {
         verify(analysisRepository, times(2)).save(captor.capture());
         AnomalyAnalysis completed = captor.getAllValues().get(1);
 
-        // Analysis contributingReportIds must not contain 99 (self excluded)
         String contributing = completed.getContributingReportIds();
         assertThat(contributing).doesNotContain("99");
         assertThat(contributing).contains("12");
         assertThat(contributing).contains("45");
     }
-
-    // -------------------------------------------------------------------------
-    // 6. Both OpenAI responses unparseable → UNRESOLVED
-    // -------------------------------------------------------------------------
 
     @Test
     void analyzeReport_bothParseAttemptsFail_marksUnresolved() throws Exception {
@@ -283,14 +250,10 @@ class OpenAIServiceTest {
         verify(anomalyRepository, never()).save(any());
     }
 
-    // -------------------------------------------------------------------------
-    // 7. First response unparseable, second succeeds (retry flow)
-    // -------------------------------------------------------------------------
-
     @Test
     void analyzeReport_firstParseFails_retrySucceeds() throws Exception {
         when(openAIHttpClient.call(anyString()))
-                .thenReturn("```not valid json```")  // first call fails
+                .thenReturn("```not valid json```")
                 .thenReturn("""
                         {
                           "confirmed": true,
@@ -299,7 +262,7 @@ class OpenAIServiceTest {
                           "explanation": "Rift detected on retry.",
                           "contributingReportIds": []
                         }
-                        """); // second call succeeds
+                        """);
 
         openAIService.analyzeReport(99L);
 
@@ -310,10 +273,6 @@ class OpenAIServiceTest {
         verify(anomalyRepository).save(anomalyCaptor.capture());
         assertThat(anomalyCaptor.getValue().getType()).isEqualTo(AnomalyType.RFT);
     }
-
-    // -------------------------------------------------------------------------
-    // 8. Below 75% overlap — new anomaly created
-    // -------------------------------------------------------------------------
 
     @Test
     void analyzeReport_belowOverlapThreshold_createsNewAnomaly() throws Exception {
@@ -327,7 +286,6 @@ class OpenAIServiceTest {
                 }
                 """);
 
-        // Existing anomaly pool [45, 78] — intersection with [12] = 0%
         Anomaly existing = Anomaly.builder()
                 .timeline(timeline)
                 .contributingReportIds("45,78")
@@ -341,14 +299,9 @@ class OpenAIServiceTest {
 
         ArgumentCaptor<Anomaly> captor = ArgumentCaptor.forClass(Anomaly.class);
         verify(anomalyRepository).save(captor.capture());
-        // Saved anomaly is new (id was null before save)
         assertThat(captor.getValue().getType()).isEqualTo(AnomalyType.RFT);
         assertThat(captor.getValue()).isNotEqualTo(existing);
     }
-
-    // -------------------------------------------------------------------------
-    // 9. OpenAI API throws exception → analysis marked FAILED
-    // -------------------------------------------------------------------------
 
     @Test
     void analyzeReport_openAIThrowsException_marksAsFailed() throws Exception {
@@ -365,13 +318,8 @@ class OpenAIServiceTest {
         assertThat(failed.getExplanation()).contains("technical error");
         verify(anomalyRepository, never()).save(any());
     }
-    // -------------------------------------------------------------------------
-    // 10. Second agent corroborates → anomaly verified → alert triggered
-    // -------------------------------------------------------------------------
-
     @Test
     void analyzeReport_secondAgentCorroborates_verifiesAnomalyAndTriggersAlert() throws Exception {
-        // Current report submitted by agentTwo
         ReflectionTestUtils.setField(report, "agent", agentTwo);
 
         when(openAIHttpClient.call(anyString())).thenReturn("""
@@ -384,7 +332,6 @@ class OpenAIServiceTest {
                 }
                 """);
 
-        // Unverified anomaly founded by agentOne (report 77) — CRITICAL risk
         Anomaly unverified = Anomaly.builder()
                 .type(AnomalyType.RFT)
                 .paradoxRisk(ParadoxRisk.CRITICAL)
@@ -405,17 +352,13 @@ class OpenAIServiceTest {
 
         openAIService.analyzeReport(99L);
 
-        // Anomaly promoted to verified
         assertThat(unverified.isVerified()).isTrue();
         verify(anomalyRepository).save(unverified);
 
-        // Alert triggered because CRITICAL
         verify(alertService).triggerIfCritical(unverified);
 
-        // Report confirmed
         assertThat(report.getStatus()).isEqualTo(ReportStatus.CONFIRMED);
 
-        // WebSocket pushed to agent
         verify(messagingTemplate).convertAndSend(
                 eq("/topic/analysis/" + agentTwo.getId()),
                 (Object) any()

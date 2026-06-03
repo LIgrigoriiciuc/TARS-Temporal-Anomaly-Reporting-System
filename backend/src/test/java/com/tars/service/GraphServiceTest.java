@@ -60,10 +60,6 @@ class GraphServiceTest {
         ReflectionTestUtils.setField(anomaly2, "id", 2L);
     }
 
-    // -------------------------------------------------------------------------
-    // getGraphAnomalies — no filters
-    // -------------------------------------------------------------------------
-
     @Test
     void getGraphAnomalies_noFilters_returnsAll() {
         when(anomalyRepository.findForGraph(null, null, null, null))
@@ -82,10 +78,6 @@ class GraphServiceTest {
 
         assertThat(graphService.getGraphAnomalies(null, null, null, null, null)).isEmpty();
     }
-
-    // -------------------------------------------------------------------------
-    // Filters passed through to repository correctly
-    // -------------------------------------------------------------------------
 
     @Test
     void getGraphAnomalies_timelineFilter_passedToRepo() {
@@ -132,10 +124,6 @@ class GraphServiceTest {
         verify(anomalyRepository).findForGraph(1L, ParadoxRisk.CRITICAL, 2040, 2050);
     }
 
-    // -------------------------------------------------------------------------
-    // DTO mapping
-    // -------------------------------------------------------------------------
-
     @Test
     void getGraphAnomalies_mapsFieldsCorrectly() {
         when(anomalyRepository.findForGraph(null, null, null, null))
@@ -170,10 +158,6 @@ class GraphServiceTest {
         assertThat(dto.getTimelineId()).isNull();
         assertThat(dto.getTimelineName()).isNull();
     }
-
-    // -------------------------------------------------------------------------
-    // allowedTimelineIds filter
-    // -------------------------------------------------------------------------
 
     @Test
     void getGraphAnomalies_allowedTimelineIds_filtersOutNonMatching() {

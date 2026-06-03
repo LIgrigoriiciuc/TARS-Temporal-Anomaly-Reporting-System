@@ -15,8 +15,8 @@ public interface AnomalyRepository extends JpaRepository<Anomaly, Long> {
     List<Anomaly> findByTimelineId(Long timelineId);
 
     /**
-     * UC-09 / UC-10 — graph query, always verified only.
-     * All filter params optional — null means "no filter on this field".
+     * graph query, always verified only.
+     * All filter params optional, null means "no filter on this field".
      */
     @Query("""
         SELECT a FROM Anomaly a

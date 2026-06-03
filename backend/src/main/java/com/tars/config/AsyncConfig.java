@@ -11,7 +11,7 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class AsyncConfig {
 
-    // Standard queue — FREE and PRO agents
+    // Standard queue for FREE and PRO agents
     @Bean("standardExecutor")
     public Executor standardExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -23,7 +23,7 @@ public class AsyncConfig {
         return executor;
     }
 
-    // Priority queue — ENTERPRISE agents
+    // Priority queue for ENTERPRISE agents
     @Bean("priorityExecutor")
     public Executor priorityExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

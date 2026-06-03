@@ -28,29 +28,24 @@ public class AlertService {
     /**
      * Called from OpenAIService after a confirmed anomaly is saved.
      * Triggers if paradoxRisk is HIGH or CRITICAL.
-     * Guards against duplicates — one alert per anomaly.
+     * Guards against duplicates, one alert per anomaly.
      */
     @Transactional
     public void triggerIfCritical(Anomaly anomaly) {
         if (anomaly.getParadoxRisk() == null) return;
         if (anomaly.getParadoxRisk() != ParadoxRisk.HIGH
                 && anomaly.getParadoxRisk() != ParadoxRisk.CRITICAL) return;
-
-        // Don't create duplicate alert if one already exists for this anomaly
         if (alertRepository.findByAnomalyId(anomaly.getId()).isPresent()) {
             log.info("AlertService: alert already exists for anomaly {}", anomaly.getId());
             return;
         }
-
         Alert alert = Alert.builder()
                 .anomaly(anomaly)
                 .acknowledged(false)
                 .build();
         alert = alertRepository.save(alert);
-
         log.info("AlertService: alert created for anomaly {} paradoxRisk={}",
                 anomaly.getId(), anomaly.getParadoxRisk());
-
         // Push to all supervisors immediately via WebSocket
         // Supervisors subscribe to /topic/alerts
         AlertDTO dto = AlertMapper.toDto(alert);

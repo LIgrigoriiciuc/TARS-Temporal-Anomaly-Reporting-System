@@ -30,7 +30,7 @@ public class StripeWebhookController {
 
     /**
      * Stripe calls this after payment events.
-     * Must be public (no JWT) — Stripe doesn't send cookies.
+     * Must be public (no JWT), Stripe doesn't send cookies.
      * Signature verification replaces authentication.
      */
     @PostMapping("/webhook")
@@ -54,21 +54,18 @@ public class StripeWebhookController {
                 log.info("StripeWebhook: checkout.session.completed received");
 
                 // Use raw JSON deserialization instead of getObject()
-                Session session = null;  // ← bypasses strict version checking
+                Session session = null;  // <- bypasses strict version checking
                 try {
                     session = (Session) event.getDataObjectDeserializer()
                             .deserializeUnsafe();
                 } catch (EventDataObjectDeserializationException e) {
                     throw new RuntimeException(e);
                 }
-
                 Long agentId = Long.parseLong(session.getMetadata().get("agentId"));
                 PlanType plan = PlanType.valueOf(session.getMetadata().get("plan"));
                 BillingCycle billingCycle = BillingCycle.valueOf(session.getMetadata().get("billingCycle"));
-
                 log.info("StripeWebhook: metadata — agentId={}, plan={}, cycle={}",
                         agentId, plan, billingCycle);
-
                 subscriptionService.activateSubscription(
                         session.getSubscription(),
                         session.getCustomer(),
@@ -77,7 +74,7 @@ public class StripeWebhookController {
             }
 
             case "customer.subscription.deleted" -> {
-                // Billing cycle ended after cancellation — revert to FREE
+                // Billing cycle ended after cancellation, revert to FREE
                 Optional<StripeObject> stripeObject = event.getDataObjectDeserializer().getObject();
                 if (stripeObject.isPresent()) {
                     com.stripe.model.Subscription sub = (com.stripe.model.Subscription) stripeObject.get();
@@ -89,7 +86,7 @@ public class StripeWebhookController {
             default -> log.info("StripeWebhook: unhandled event type {}", event.getType());
         }
 
-        // Always return 200 — Stripe retries on non-200 responses
+        // Always return 200, Stripe retries on non-200 responses
         return ResponseEntity.ok("Received");
     }
 }
