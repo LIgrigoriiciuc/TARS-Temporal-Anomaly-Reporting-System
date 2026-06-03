@@ -31,7 +31,7 @@
 - A2 Account Inactive: User account has status `INACTIVE`. Backend returns 403; TARS displays "ACCOUNT_TERMINATED // Access denied".
 
 **Exceptions**
-- E1 Database Timeout: Backend cannot reach the database; a `DataAccessException` is caught by `GlobalExceptionHandler` and returns 503. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
+- E1 Service Unavailable: Any unexpected error (database timeout, server failure, network issue) returns a non-401/403 status code. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
 
 ---
 
@@ -164,14 +164,12 @@
 8. Agent receives the saved report response; analysis result arrives later via WebSocket push to `/topic/analysis/{agentId}`.
 
 **Alternative Flows**
-- A1 Required fields missing: Agent submits with no fields filled. TARS displays "At least one field must be filled" and blocks submission.
-- A2 Duplicate report: Agent submits a report for a timeline and year they already have an active report for (PENDING_ANALYSIS or CONFIRMED status). Backend returns 409; TARS displays the conflict message.
+- A1 Fields missing: Agent submits with fields un-filled. TARS displays "All fields are required to submit a report."
+- A2 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
+- A3 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
 
 **Exceptions**
-- E1 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
-- E2 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
-- E3 OpenAI API unavailable: Report is saved successfully but analysis fails. Analysis is saved with status FAILED and report is marked REJECTED. Report is not retried automatically.
-- E4 Database Unreachable: `DataAccessException` caught by `GlobalExceptionHandler`, returns 503.
+- E1 OpenAI API unavailable: Report is saved successfully but analysis fails. Analysis is saved with status FAILED and report is marked REJECTED. Report is not retried automatically.
 
 ---
 
