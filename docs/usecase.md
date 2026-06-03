@@ -164,12 +164,12 @@
 8. Agent receives the saved report response; analysis result arrives later via WebSocket push to `/topic/analysis/{agentId}`.
 
 **Alternative Flows**
-- A1 Required fields missing: Agent submits with no fields filled. TARS displays "At least one field must be filled" and blocks submission.
+- A1 Fields missing: Agent submits with fields un-filled. TARS displays "All fields are required to submit a report."
+- A2 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
+- A3 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
 
 **Exceptions**
-- E1 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
-- E2 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
-- E3 OpenAI API unavailable: Report is saved successfully but analysis fails. Analysis is saved with status FAILED and report is marked REJECTED. Report is not retried automatically.
+- E1 OpenAI API unavailable: Report is saved successfully but analysis fails. Analysis is saved with status FAILED and report is marked REJECTED. Report is not retried automatically.
 
 ---
 
