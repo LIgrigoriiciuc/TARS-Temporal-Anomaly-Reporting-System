@@ -165,13 +165,11 @@
 
 **Alternative Flows**
 - A1 Required fields missing: Agent submits with no fields filled. TARS displays "At least one field must be filled" and blocks submission.
-- A2 Duplicate report: Agent submits a report for a timeline and year they already have an active report for (PENDING_ANALYSIS or CONFIRMED status). Backend returns 409; TARS displays the conflict message.
 
 **Exceptions**
 - E1 Monthly limit reached: Agent has reached their plan's report limit. Backend returns 429; TARS displays "Monthly report limit reached. Upgrade your plan."
 - E2 Timeline not accessible: Agent selects a timeline not included in their plan. Backend returns 403; TARS displays the error message.
 - E3 OpenAI API unavailable: Report is saved successfully but analysis fails. Analysis is saved with status FAILED and report is marked REJECTED. Report is not retried automatically.
-- E4 Database Unreachable: `DataAccessException` caught by `GlobalExceptionHandler`, returns 503.
 
 ---
 
