@@ -31,7 +31,7 @@
 - A2 Account Inactive: User account has status `INACTIVE`. Backend returns 403; TARS displays "ACCOUNT_TERMINATED // Access denied".
 
 **Exceptions**
-- E1 Database Timeout: Backend cannot reach the database; a `DataAccessException` is caught by `GlobalExceptionHandler` and returns 503. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
+- E1 Service Unavailable: Any unexpected error (database timeout, server failure, network issue) returns a non-401/403 status code. TARS displays "SYSTEM_UNAVAILABLE // Retry later".
 
 ---
 
