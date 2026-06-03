@@ -35,7 +35,7 @@ class ReportServiceTest {
     private AnomalyAnalysisRepository analysisRepository;
 
     @Mock
-    private GeminiService geminiService;
+    private OpenAIService openAIService;
 
     @InjectMocks
     private ReportService reportService;

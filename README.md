@@ -180,7 +180,7 @@ TARS-Temporal-Anomaly-Reporting-System/
 │   ├── src/main/java/com/tars/
 │   │   ├── config/           # Async, WebSocket, CORS, Security configs
 │   │   ├── controller/       # REST endpoints
-│   │   ├── service/          # Business logic (GeminiService, ReportService)
+│   │   ├── service/          # Business logic (OpenAIService, ReportService)
 │   │   ├── model/            # JPA entities and DTOs
 │   │   ├── repository/       # Spring Data JPA repositories
 │   │   └── exception/        # Custom exceptions

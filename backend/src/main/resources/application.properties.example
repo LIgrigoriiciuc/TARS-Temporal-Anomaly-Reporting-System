@@ -18,10 +18,8 @@ spring.mail.password=YOUR_APP_PASSWORD
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 
-gemini.api.key=your_key_here
-gemini.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
 openai.api.key=sk-...
-openai.model=gpt-4o-mini
+openai.model=gpt-4o
 
 stripe.api.key=sk_test_...       # from Stripe dashboard
 stripe.webhook.secret=whsec_...  # from stripe listen output

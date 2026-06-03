@@ -12,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class ReportAnalysisListener {
 
-    private final GeminiService geminiService;
+    private final OpenAIService openAIService;
     private final SubscriptionService subscriptionService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -21,9 +21,9 @@ public class ReportAnalysisListener {
                 .getOrCreateFreeSubscription(event.agent())
                 .getPlan();
         if (plan == PlanType.ENTERPRISE) {
-            geminiService.analyzeReportPriority(event.reportId());
+            openAIService.analyzeReportPriority(event.reportId());
         } else {
-            geminiService.analyzeReport(event.reportId());
+            openAIService.analyzeReport(event.reportId());
         }
     }
 }

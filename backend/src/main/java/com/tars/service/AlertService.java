@@ -26,7 +26,7 @@ public class AlertService {
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Called from GeminiService after a confirmed anomaly is saved.
+     * Called from OpenAIService after a confirmed anomaly is saved.
      * Triggers if paradoxRisk is HIGH or CRITICAL.
      * Guards against duplicates — one alert per anomaly.
      */
